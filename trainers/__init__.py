@@ -1,3 +1,3 @@
 
 from .base_trainer import BaseTrainer
-from .protein_trainer import ProteinTrainer
+from .redshift_trainer import RedshiftTrainer

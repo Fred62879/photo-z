@@ -30,7 +30,6 @@ trainer:
     log_dir: '/scratch/projects/vision/data/533/output/'
 
     warm_up_end: 1000
-    eval_num_points: 100000
 
     num_epochs: 100
     batch_size: 5000
@@ -39,24 +38,11 @@ trainer:
     valid_every: 50
     log_cli_every: 50
 
-    igr_weight: 0.1
-    mask_weight: 0.0
-
-
 validate:
-    mcubes_threshold: 1.0
-    mesh_resolution: 256
-
-    chamfer_norm: 2
-    mesh_sample_points: -1
     validate_num_batches: 10
 
 dataset:
     dataset_num_workers: 0
 
-    raw_data_path: '/scratch/projects/bioinfo/code/dmasif/surface_data/raw'
-    raw_pdb_dir: '01-benchmark_pdbs'
-    raw_surface_dir: '01-benchmark_surfaces'
     data_path: '/scratch/projects/vision/data/533'
     dataset_name: 'protein_test'
-    pdb_chain_id_name: "pdb_chain_ids"

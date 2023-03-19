@@ -2,12 +2,12 @@
 import sys
 import torch
 import logging
+import torchvision
 import numpy as np
-import torch.distributed as dist
 
-from models import NPullNetwork
-from dataset import ProteinDataset
-from trainers import ProteinTrainer
+from models import DINO
+from dataset import RedshiftDataset
+from trainers import RedshiftTrainer
 
 logger_initialized = {}
 
@@ -18,8 +18,7 @@ def get_optimizer(**kwargs):
     """
     optim_cls = str2optim[kwargs["optimizer_type"]]
     if kwargs["optimizer_type"] == 'adam':
-        optim_params = {'lr': 1e-5, 'eps': 1e-8, 'betas': (kwargs["b1"], kwargs["b2"]),
-                        'weight_decay':  kwargs["weight_decay"]}
+        optim_params = {'lr': 1e-5, 'eps': 1e-8, 'betas': (kwargs["b1"], kwargs["b2"])}
     elif kwargs["optimizer_type"] == 'sgd':
         optim_params = {'momentum': 0.8}
     else:
@@ -27,19 +26,30 @@ def get_optimizer(**kwargs):
 
     return optim_cls, optim_params
 
-def get_protein_sdf_model(**kwargs):
-    pipeline =  NPullNetwork(kwargs["d_in"], kwargs["d_out"], kwargs["d_hidden"],
-                             kwargs["n_layers"], kwargs["skip_in"], kwargs["multires"],
-                             kwargs["bias"], kwargs["scale"], kwargs["geometric_init"],
-                             kwargs["weight_norm"])
-    device = "cuda" if kwargs["use_gpu"] and torch.cuda.is_available() else "cpu"
-    pipeline.to(device)
-    return pipeline
+def get_dino_pipeline(**kwargs):
+    resnet = torchvision.models.resnet18()
+    backbone = torch.nn.Sequential(*list(resnet.children())[:-1])
+    input_dim = 512
+    # instead of a resnet you can also use a vision transformer backbone as in the
+    # original paper (you might have to reduce the batch size in this case):
+    # backbone = torch.hub.load('facebookresearch/dino:main', 'dino_vits16', pretrained=False)
+    # input_dim = backbone.embed_dim
 
-def get_protein_dataset(**kwargs):
-    return ProteinDataset(**kwargs)
+    model = DINO(backbone, input_dim)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+    return model
 
-def get_protein_trainer(model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs):
+def get_redshift_dataset(**kwargs):
+    pascal_voc = torchvision.datasets.VOCDetection(
+        "datasets/pascal_voc", download=True, target_transform=lambda t: 0
+    )
+    dataset = LightlyDataset.from_torch_dataset(pascal_voc)
+    # or create a dataset from a folder containing images or videos:
+    # dataset = LightlyDataset("path/to/folder")
+    return RedshiftnDataset(**kwargs)
+
+def get_redshift_trainer(model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs):
     return ProteinTrainer(model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs)
 
 def get_root_logger(log_file=None, log_level=logging.INFO, name='main'):

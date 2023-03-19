@@ -1,2 +1,2 @@
 
-from .protein_dataset import ProteinDataset
+from .redshift_dataset import RedshiftDataset

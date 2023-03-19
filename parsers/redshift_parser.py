@@ -59,17 +59,11 @@ def define_cmd_line_args():
     data_group.add_argument("--dataloader-drop-last", action="store_true")
     data_group.add_argument("--dataloader-num-workers", type=int, default=0)
 
-    data_group.add_argument("--raw-data-path", type=str, help="Path to the raw input.")
-    data_group.add_argument("--raw-pdb-dir", type=str, help="Raw input pdb dir name.")
-    data_group.add_argument("--raw-surface-dir", type=str, help="Raw input surface dir name.")
-
     data_group.add_argument("--data-path", type=str, help="Path to the dataset")
     data_group.add_argument("--dataset-name", type=str, help="Path to the dataset")
     data_group.add_argument("--dataset-num-workers", type=int, default=-1,
                             help="Number of workers for dataset preprocessing, if it \
                             supports multiprocessing. -1 indicates no multiprocessing.")
-
-    data_group.add_argument("--pdb-chain-id-name", type=str, help="pdb chain id file name")
 
     ###################
     # Arguments for optimizer
@@ -80,14 +74,6 @@ def define_cmd_line_args():
                              help="Optimizer to be used.")
     optim_group.add_argument("--lr", type=float, default=0.001,
                              help="Learning rate.")
-    optim_group.add_argument("--hps-lr", type=float, default=0.0001)
-    optim_group.add_argument("--qtz-lr", type=float, default=0.0001)
-    optim_group.add_argument("--weight-decay", type=float, default=0,
-                             help="Weight decay.")
-    optim_group.add_argument("--grid-lr-weight", type=float, default=100.0,
-                             help="Relative LR weighting for the grid")
-    optim_group.add_argument("--rgb-loss", type=float, default=1.0,
-                            help="Weight of rgb loss")
     optim_group.add_argument("--b1",type=float, default=0.5)
     optim_group.add_argument("--b2",type=float, default=0.999)
 
@@ -102,10 +88,6 @@ def define_cmd_line_args():
                              help="Number of epochs to run the training.")
 
     train_group.add_argument("--warm-up-end", type=int, default=1000)
-    train_group.add_argument("--eval-num-points", type=int, default=1000)
-
-    train_group.add_argument("--igr-weight", type=int, default=512)
-    train_group.add_argument("--mask-weight", type=int, default=512)
 
     train_group.add_argument("--batch-size", type=int, default=512,
                              help="Batch size for the training.")
@@ -142,14 +124,7 @@ def define_cmd_line_args():
                              help="Frequency of running validation.")
     valid_group.add_argument("--valid-split", type=str, default="val",
                              help="Split to use for validation.")
-    valid_group.add_argument("--mesh_resolution", type=int, default=64)
-    valid_group.add_argument("--mcubes-threshold", type=float, default=0.0)
-
-    valid_group.add_argument("--chamfer_norm", type=int, default=2,
-                             help="whether l1 or l2 chamfer distance.")
-    valid_group.add_argument("--mesh_sample_points", type=int, default=-1)
     valid_group.add_argument("--validate_num_batches", type=int, default=10)
-
 
     # add log level flag
     parser.add_argument(
@@ -157,23 +132,3 @@ def define_cmd_line_args():
         help='Logging level to use globally, DEBUG: 10, INFO: 20, WARN: 30, ERROR: 40.')
 
     return parser
-
-'''
-def parse_args():
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--conf', type=str, default='./confs/np_srb.conf')
-    parser.add_argument('--mode', type=str, default='train')
-    parser.add_argument('--mcubes_threshold', type=float, default=0.0)
-    parser.add_argument('--gpu', type=int, default=0)
-    parser.add_argument('--dir', type=str, default='gargoyle')
-    parser.add_argument('--dataname', type=str, default='gargoyle')
-    args = parser.parse_args()
-
-    # Configuration
-    f = open(args.conf)
-    conf_text = f.read()
-    f.close()
-    conf = ConfigFactory.parse_string(conf_text)
-    conf['conf_path'] = args.conf
-'''
