@@ -8,7 +8,6 @@ from pathlib import Path
 from os.path import exists, join
 from collections import defaultdict
 from torch.utils.data import Dataset
-from lightly.data import DINOCollateFunction, LightlyDataset
 
 import sys
 sys.path.insert(0, './dataset')
@@ -24,42 +23,44 @@ class RedshiftDataset(Dataset):
             self.device = torch.device('cuda')
         else: self.device = torch.device("cpu")
 
+        self.mode = "pre_training"
         self.set_log_path()
+        self.load_redshift()
 
     def set_log_path(self):
-        raw_data_path = self.kwargs["raw_data_path"]
-        self.raw_pdb_path = join(raw_data_path, self.kwargs["raw_pdb_dir"])
-        self.raw_surface_path = join(raw_data_path, self.kwargs["raw_surface_dir"])
-
         root_path = self.kwargs["data_path"]
         input_path = join(root_path, "input")
         self.dataset_path = join(input_path, self.kwargs["dataset_name"])
-        self.pdb_chain_ids_fname = join(self.dataset_path, self.kwargs["pdb_chain_id_name"] + ".txt")
+        self.source_redshift_fname = join(input_path, self.kwargs["redshift_fname"])
 
     def __len__(self):
-        return self.get_cur_num_sample_points()
+        return self.get_num_cutouts()
 
     def __getitem__(self, idx: list):
-        index_coarse = np.random.choice(10, 1)
-        index_fine = np.random.choice(
-            self.get_cur_num_sample_points() //10, len(idx), replace = False)
-        index = index_fine * 10 + index_coarse
-
+        if self.mode == "pre_training":
+            ret = {"cutouts": self.cutouts[index]}
         return {
-            "points": self.points[self.cur_chain][index],
-            "samples": self.samples[self.cur_chain][index],
-            #"gt_points": self.gt_points[self.cur_chain],
+            "cutouts": self.cutouts[index]
+            "redshift": self.redshifts[index],
         }
 
     #############
     # Getters
     #############
 
+    def get_num_cutouts(self):
+        return len(self.data["cutouts"])
 
     #############
     # Setters
     #############
 
+    def set_mode(self, mode):
+        self.mode = mode
+
     #############
     # Helpers
     #############
+
+    def load_redshift(self):
+        self.data = defaultdict(lambda x: None)

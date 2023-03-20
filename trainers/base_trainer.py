@@ -64,6 +64,7 @@ class BaseTrainer(ABC):
         # Training params
         self.epoch = 1
         self.iteration = 0
+        self.total_iterations = 0
         self.num_epochs = kwargs["num_epochs"]
         self.batch_size = kwargs["batch_size"]
         self.exp_name = kwargs["exp_name"]
@@ -170,6 +171,24 @@ class BaseTrainer(ABC):
     # Training Life-cycle
     ################
 
+    def train(self):
+        self.pre_training()
+
+        for epoch in range(self.num_epochs):
+            self.epoch = epoch
+            self.begin_epoch()
+
+            for iteration in range(self.num_batches):
+                self.iteration = iteration
+                self.pre_step()
+                data = self.next_batch()
+                self.step(data)
+                self.post_step()
+
+            self.end_epoch()
+
+        self.post_training()
+
     def is_first_iteration(self):
         return self.total_iterations == 1
 
@@ -196,34 +215,6 @@ class BaseTrainer(ABC):
         if self.valid_every > -1 and self.epoch % self.valid_every == 0 and self.epoch != 0:
             self.validate()
 
-    def iterate(self):
-        """ Advances the training by one training step (batch).
-        """
-        if self.is_optimization_running:
-            if self.is_first_iteration():
-                self.pre_training()
-            iter_start_time = time.time()
-            try:
-                if self.train_data_loader_iter is None:
-                    self.begin_epoch()
-                self.iteration += 1
-                data = self.next_batch()
-            except StopIteration:
-                self.end_epoch()
-                if self.is_any_iterations_remaining():
-                    self.begin_epoch()
-                    data = self.next_batch()
-            if self.is_any_iterations_remaining():
-                self.pre_step()
-                with torch.cuda.amp.autocast(self.enable_amp):
-                    self.step(data)
-                self.post_step()
-                iter_end_time = time.time()
-            else:
-                iter_end_time = time.time()
-                self.post_training()
-            self.scene_state.optimization.elapsed_time += iter_end_time - iter_start_time
-
     def save_model(self):
         if self.kwargs["save_as_new"]:
             model_fname = os.path.join(self.log_dir, f'model-ep{self.epoch}-it{self.iteration}.pth')
@@ -241,12 +232,6 @@ class BaseTrainer(ABC):
             model_artifact = wandb.Artifact(name, type="model")
             model_artifact.add_file(model_fname)
             wandb.run.log_artifact(model_artifact, aliases=["latest", f"ep{self.epoch}_it{self.iteration}"])
-
-    def train(self):
-        with torch.autograd.profiler.emit_nvtx(enabled=self.kwargs["profile"]):
-            self.is_optimization_running = True
-            while self.is_optimization_running:
-                self.iterate()
 
     ################
     # Training Events

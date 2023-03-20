@@ -10,7 +10,13 @@ if __name__ == '__main__':
     dino_model = get_dino_pipeline()
     dataset = get_redshift_dataset(**kwargs)
     optim_cls, optim_params = get_optimizer(**kwargs)
-    trainer = get_protein_trainer(dino_model, dataset, None, optim_cls, optim_params, "train", **kwargs)
+    trainer = get_redshift_trainer(dino_model, dataset, None, optim_cls, optim_params, "train", **kwargs)
 
-    if kwargs['trainer_mode'] == 'train':
+    if kwargs['trainer_mode'] == "pre_training":
+        trainer.set_mode("pre_training")
         trainer.train()
+    elif kwargs['trainer_mode'] == "redshif_est":
+        trainer.set_mode("redshift_est")
+        trainer.train()
+    elif kwargs['trainer_mode'] == "validate":
+        trainer.validate()

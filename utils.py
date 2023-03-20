@@ -17,8 +17,8 @@ def get_optimizer(**kwargs):
     """ Utility function to get the optimizer from the parsed config.
     """
     optim_cls = str2optim[kwargs["optimizer_type"]]
-    if kwargs["optimizer_type"] == 'adam':
-        optim_params = {'lr': 1e-5, 'eps': 1e-8, 'betas': (kwargs["b1"], kwargs["b2"])}
+    if kwargs["optimizer_type"] == 'adamw':
+        optim_params = {'lr': 1e-3, 'eps': 1e-8, 'betas': (kwargs["b1"], kwargs["b2"])}
     elif kwargs["optimizer_type"] == 'sgd':
         optim_params = {'momentum': 0.8}
     else:

@@ -60,7 +60,7 @@ def define_cmd_line_args():
     data_group.add_argument("--dataloader-num-workers", type=int, default=0)
 
     data_group.add_argument("--data-path", type=str, help="Path to the dataset")
-    data_group.add_argument("--dataset-name", type=str, help="Path to the dataset")
+    data_group.add_argument("--redshift-fname", type=str, help="Filename of source redshift.")
     data_group.add_argument("--dataset-num-workers", type=int, default=-1,
                             help="Number of workers for dataset preprocessing, if it \
                             supports multiprocessing. -1 indicates no multiprocessing.")
