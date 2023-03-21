@@ -20,7 +20,7 @@ def parse_input_config(parser):
     args = parser.parse_args()
 
     # parse yaml config file
-    if args.config is not None:
+    if hasattr(args, 'config') and args.config is not None:
         parse_yaml_config(args.config, parser)
     args = parser.parse_args()
 

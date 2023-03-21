@@ -1,0 +1,61 @@
+global:
+    use_gpu: True
+    verbose: True
+    print_shape: False
+    shuffle_dataloader: True
+    dataloader_drop_last: True
+    exp_name: 'image_net'
+
+optimizer:
+    optimizer_type: 'adamw'
+    lr: 0.0005
+    min_lr: 1e-06
+
+network:
+    arch: vit_tiny
+    patch_size: 16
+    out_dim: 65536
+    norm_last_layer: True
+    use_bn_in_head: False
+
+    momentum_teacher: 0.996
+    teacher_temp: 0.04
+    warmup_teacher_temp: 0.04
+    warmup_teacher_temp_epochs: 0
+
+trainer:
+    trainer_mode: 'pre_training'
+    log_dir: '/scratch/projects/vision/data/533/output/'
+
+    num_epochs: 10
+    warmup_epochs: 5
+    batch_size: 1
+    batch_size_per_gpu: 64
+
+    save_every: 2
+    valid_every: 2
+    log_cli_every: 2
+
+    clip_grad: 3.0
+    use_fp16: True
+    weight_decay: 0.04
+    weight_decay_end: 0.4
+    freeze_last_layer: 1
+    drop_path_rate: 0.1
+
+#validate:
+#    validate_num_batches: 10
+
+dataset:
+    dataset_num_workers: 0
+
+    data_path: /scratch/projects/vision/code/dino/data/test
+    #data_path: '/scratch/projects/vision/data/533'
+    #dataset_name: 'protein_test'
+
+    global_crops_scale: [0.4, 1.0]
+    local_crops_number: 8
+    local_crops_scale: [0.05, 0.4]
+
+    dist_url: env://
+    seed: 0

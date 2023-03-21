@@ -1,4 +1,5 @@
 
 
 from .dino import DINO
-from .vision_transformer import vit_tiny, vit_small, vit_base
+#from .heads import DINOHead
+#from .vision_transformer import vit_tiny, vit_small, vit_base

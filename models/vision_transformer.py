@@ -21,10 +21,7 @@ import torch
 import torch.nn as nn
 
 from functools import partial
-
-import sys
-sys.path.insert(0, './models')
-from model_utils import trunc_normal_
+from models.model_utils import trunc_normal_
 
 
 def drop_path(x, drop_prob: float = 0., training: bool = False):

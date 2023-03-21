@@ -40,8 +40,8 @@ class RedshiftDataset(Dataset):
         if self.mode == "pre_training":
             ret = {"cutouts": self.cutouts[index]}
         return {
-            "cutouts": self.cutouts[index]
-            "redshift": self.redshifts[index],
+            "cutouts": self.cutouts[index],
+            "redshift": self.redshifts[index]
         }
 
     #############

@@ -1,3 +1,4 @@
+
 import torch
 import numpy as np
 import torch.nn as nn
@@ -9,13 +10,6 @@ from os.path import join
 from trainers import BaseTrainer
 from trainers.train_utils import *
 
-# from lightly.loss import DINOLoss
-# from lightly.utils.scheduler import cosine_schedule
-
-import sys
-sys.path.insert(0, './trainers')
-from trainer_utils import *
-
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -24,22 +18,22 @@ class RedshiftTrainer(BaseTrainer):
     def __init__(self, model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs):
 
         super().__init__(model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs)
-        log.info(f"{self.pipeline}, {next(self.pipeline.parameters()).device}")
+        # log.info(f"{self.pipeline}, {next(self.pipeline.parameters()).device}")
 
-        self.mode == "pre_training"
+        self.mode == mode
         self.init_loss()
         if self.mode == "pre_training":
             self.init_scheduler()
 
     def init_loss(self):
-        if self.mode = "pre_training":
+        if self.mode == "pre_training":
             self.dino_loss = DINOLoss(
-                args.out_dim,
-                args.local_crops_number + 2,  # total number of crops = 2 global crops + local_crops_number
-                args.warmup_teacher_temp,
-                args.teacher_temp,
-                args.warmup_teacher_temp_epochs,
-                args.epochs,
+                self.kwargs["out_dim"],
+                self.kwargs["local_crops_number"] + 2,  # total number of crops = 2 global crops + local_crops_number
+                self.kwargs["warmup_teacher_temp"],
+                self.kwargs["teacher_temp"],
+                self.kwargs["warmup_teacher_temp_epochs"],
+                self.kwargs["num_epochs"],
             ).to(self.device)
 
         elif self.mode == "redshift_est":
@@ -47,19 +41,19 @@ class RedshiftTrainer(BaseTrainer):
 
     def init_scheduler(self):
         self.lr_schedule = cosine_scheduler(
-            args.lr * (args.batch_size_per_gpu * get_world_size()) / 256., # linear scaling
-            args.min_lr,
-            self.num_epochs, len(self.data_loader),
-            warmup_epochs=args.warmup_epochs,
+            self.kwargs["lr"] * (self.kwargs["batch_size_per_gpu"] * get_world_size()) / 256., # linear scaling
+            self.kwargs["min_lr"],
+            self.num_epochs, len(self.train_data_loader),
+            warmup_epochs=self.kwargs["warmup_epochs"],
         )
         self.wd_schedule = cosine_scheduler(
-            args.weight_decay,
-            args.weight_decay_end,
-            self.num_epochs, len(self.data_loader),
+            self.kwargs["weight_decay"],
+            self.kwargs["weight_decay_end"],
+            self.num_epochs, len(self.train_data_loader),
         )
         # momentum parameter is increased to 1. during training with a cosine schedule
         self.momentum_schedule = cosine_scheduler(
-            args.momentum_teacher, 1, self.num_epochs, len(self.data_loader))
+            self.kwargs["momentum_teacher"], 1, self.num_epochs, len(self.train_data_loader))
 
     ################
     # Train events
@@ -72,12 +66,9 @@ class RedshiftTrainer(BaseTrainer):
         for cur_path, cur_pname, in zip(
                 ["model_dir","output_dir"], ["models","outputs"]
         ):
-            path = join(self.log_dir, f"{self.cur_pdb_id}_{self.cur_chain_id}", cur_pname)
+            path = join(self.log_dir, cur_pname)
             setattr(self, cur_path, path)
             Path(path).mkdir(parents=True, exist_ok=True)
-
-        # inform dataset to switch protein chain
-        self.train_dataset.set_cur_chain(self.cur_pdb_id, self.cur_chain_id)
 
     ################
     # Train one epoch
@@ -138,7 +129,7 @@ class RedshiftTrainer(BaseTrainer):
         for i, param_group in enumerate(self.optimizer.param_groups):
             param_group["lr"] = self.lr_schedule[self.total_iterations]
             if i == 0:  # only the first group is regularized
-                param_group["weight_decay"] = wd_schedule[self.total_iterations]
+                param_group["weight_decay"] = self.wd_schedule[self.total_iterations]
 
         self.optimizer.zero_grad()
         teacher_output, student_output = self.pipeline(data["images"])

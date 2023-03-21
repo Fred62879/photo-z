@@ -64,7 +64,6 @@ class BaseTrainer(ABC):
         # Training params
         self.epoch = 1
         self.iteration = 0
-        self.total_iterations = 0
         self.num_epochs = kwargs["num_epochs"]
         self.batch_size = kwargs["batch_size"]
         self.exp_name = kwargs["exp_name"]
@@ -177,9 +176,12 @@ class BaseTrainer(ABC):
         for epoch in range(self.num_epochs):
             self.epoch = epoch
             self.begin_epoch()
+            print(self.num_batches)
+            print(len(self.train_data_loader))
 
             for iteration in range(self.num_batches):
                 self.iteration = iteration
+                print(iteration)
                 self.pre_step()
                 data = self.next_batch()
                 self.step(data)

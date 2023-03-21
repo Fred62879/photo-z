@@ -68,6 +68,7 @@ def define_cmd_line_args():
     ###################
     # Arguments for optimizer
     ###################
+
     optim_group = parser.add_argument_group("optimizer")
 
     optim_group.add_argument("--optimizer-type", type=str, default="adam", choices=list(str2optim.keys()),
@@ -80,6 +81,7 @@ def define_cmd_line_args():
     ###################
     # Arguments for training
     ###################
+
     train_group = parser.add_argument_group("trainer")
 
     train_group.add_argument("--trainer-mode", type=str)
