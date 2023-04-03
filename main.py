@@ -1,5 +1,5 @@
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # from parsers.redshift_parser import parse_args
     from parsers.imagenet_parser import parse_args
@@ -12,13 +12,18 @@ if __name__ == '__main__':
     # dataset = get_redshift_dataset(**kwargs)
     dataset = get_imagenet_dataset(**kwargs)
     optim_cls, optim_params = get_optimizer(**kwargs)
-    trainer = get_redshift_trainer(dino_model, dataset, None, optim_cls, optim_params, "pre_training", **kwargs)
 
-    if kwargs['trainer_mode'] == "pre_training":
-        trainer.set_mode("pre_training")
+    if kwargs["trainer_mode"] == "pre_training":
+        trainer = get_redshift_trainer(
+            dino_model, dataset[0], optim_cls, optim_params, "pre_training", **kwargs)
         trainer.train()
-    elif kwargs['trainer_mode'] == "redshif_est":
-        trainer.set_mode("redshift_est")
+
+    elif kwargs["trainer_mode"] == "redshif_training":
+        trainer = get_redshift_trainer(
+            dino_model, dataset[:2], optim_cls, optim_params, "redshift_est", **kwargs)
         trainer.train()
-    elif kwargs['trainer_mode'] == "validate":
-        trainer.validate()
+
+    elif kwargs["trainer_mode"] == "test":
+        trainer = get_redshift_trainer(
+            dino_model, dataset[2:], optim_cls, optim_params, "redshift_est", **kwargs)
+        trainer.test()

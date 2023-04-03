@@ -1,9 +1,11 @@
 
 import os
 import torch
+import random
 import numpy as np
 
 from os.path import exists
+from PIL import ImageFilter, ImageOps
 
 
 def process_data(in_fname, out_fname, query_each=25, num_batches=60):

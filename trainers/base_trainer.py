@@ -48,7 +48,7 @@ class BaseTrainer(ABC):
     # Initialization
     ################
 
-    def __init__(self, pipeline, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs):
+    def __init__(self, pipeline, dataset, optim_cls, optim_params, mode, **kwargs):
         self.kwargs = kwargs
 
         self.verbose = kwargs["verbose"]
@@ -71,7 +71,7 @@ class BaseTrainer(ABC):
         # In-training variables
         self.log_dict = {}
         self.val_data_loader = None
-        self.train_dataset_size = None
+        self.dataset_size = None
         self.train_data_loader_iter = None
 
         self.save_every = kwargs["save_every"]
@@ -80,12 +80,11 @@ class BaseTrainer(ABC):
         self.log_cli_every = kwargs["log_cli_every"]
         self.render_tb_every = kwargs["render_tb_every"]
 
-        self.train_dataset = train_dataset
-        self.validation_dataset = validation_dataset
+        self.dataset = dataset
 
         if kwargs["dataloader_drop_last"]:
-            self.num_batches = len(self.train_dataset) // kwargs["batch_size"]
-        else: self.num_batches = int(np.ceil(len(self.train_dataset) / kwargs["batch_size"]))
+            self.num_batches = len(self.dataset) // kwargs["batch_size"]
+        else: self.num_batches = int(np.ceil(len(self.dataset) / kwargs["batch_size"]))
 
         self.pipeline = pipeline
         log.info("Total number of parameters: {}".format(
@@ -113,14 +112,21 @@ class BaseTrainer(ABC):
         if self.kwargs["shuffle_dataloader"]: sampler_cls = RandomSampler
         else: sampler_cls = SequentialSampler
 
-        print(len(self.train_dataset))
+        # self.train_data_loader = DataLoader(
+        #     self.dataset,
+        #     batch_size=None,
+        #     sampler=BatchSampler(
+        #         sampler_cls(self.dataset), batch_size=self.batch_size,
+        #         drop_last=self.kwargs["dataloader_drop_last"]
+        #     ),
+        #     pin_memory=True,
+        #     num_workers=self.kwargs["dataloader_num_workers"]
+        # )
+
         self.train_data_loader = DataLoader(
-            self.train_dataset,
-            batch_size=None,
-            sampler=BatchSampler(
-                sampler_cls(self.train_dataset), batch_size=self.batch_size,
-                drop_last=self.kwargs["dataloader_drop_last"]
-            ),
+            self.dataset,
+            batch_size=self.batch_size,
+            drop_last=self.kwargs["dataloader_drop_last"],
             pin_memory=True,
             num_workers=self.kwargs["dataloader_num_workers"]
         )
@@ -159,9 +165,9 @@ class BaseTrainer(ABC):
             Args:
               (torch.utils.data.Dataset): Training dataset.
         """
-        if hasattr(self.train_dataset, 'resample'):
+        if hasattr(self.dataset, 'resample'):
             log.info("Reset DataLoader")
-            self.train_dataset.resample()
+            self.dataset.resample()
             self.init_dataloader()
         else:
             raise ValueError("resample=True but the dataset doesn't have a resample method")
@@ -176,12 +182,9 @@ class BaseTrainer(ABC):
         for epoch in range(self.num_epochs):
             self.epoch = epoch
             self.begin_epoch()
-            print(self.num_batches)
-            print(len(self.train_data_loader))
 
             for iteration in range(self.num_batches):
                 self.iteration = iteration
-                print(iteration)
                 self.pre_step()
                 data = self.next_batch()
                 self.step(data)

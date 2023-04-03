@@ -7,6 +7,7 @@ import numpy as np
 
 from models import DINO
 from trainers import RedshiftTrainer
+from torch.utils.data import random_split
 from dataset import RedshiftDataset, ImageNetDataset
 
 logger_initialized = {}
@@ -33,19 +34,25 @@ def get_dino_pipeline(**kwargs):
     return model
 
 def get_imagenet_dataset(**kwargs):
-    return ImageNetDataset(**kwargs)
+    dataset = ImageNetDataset(**kwargs)
+    if kwargs["trainer_mode"] == "pre_training":
+        return [dataset]
+
+    train_dataset, valid_dataset, test_dataset = random_split(
+        dataset, range(len(dataset)), kwargs["split_ratio"])
+    return [train_dataset, valid_dataset, test_dataset]
 
 def get_redshift_dataset(**kwargs):
-    pascal_voc = torchvision.datasets.VOCDetection(
-        "datasets/pascal_voc", download=True, target_transform=lambda t: 0
-    )
-    # dataset = LightlyDataset.from_torch_dataset(pascal_voc)
-    # or create a dataset from a folder containing images or videos:
-    # dataset = LightlyDataset("path/to/folder")
-    return RedshiftnDataset(**kwargs)
+    dataset = RedshiftnDataset(**kwargs)
+    if kwargs["trainer_mode"] == "pre_training":
+        return [dataset]
 
-def get_redshift_trainer(model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs):
-    return RedshiftTrainer(model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs)
+    train_dataset, valid_dataset, test_dataset = random_split(
+        dataset, range(len(dataset)), kwargs["split_ratio"])
+    return [train_dataset, valid_dataset, test_dataset]
+
+def get_redshift_trainer(model, dataset, optim_cls, optim_params, mode, **kwargs):
+    return RedshiftTrainer(model, dataset, optim_cls, optim_params, mode, **kwargs)
 
 def get_root_logger(log_file=None, log_level=logging.INFO, name='main'):
     """Get root logger and add a keyword filter to it.

@@ -29,7 +29,7 @@ trainer:
 
     num_epochs: 10
     warmup_epochs: 5
-    batch_size: 1
+    batch_size: 3
     batch_size_per_gpu: 64
 
     save_every: 2
@@ -49,9 +49,7 @@ trainer:
 dataset:
     dataset_num_workers: 0
 
-    data_path: /scratch/projects/vision/code/dino/data/test
-    #data_path: '/scratch/projects/vision/data/533'
-    #dataset_name: 'protein_test'
+    data_path: '/scratch/projects/vision/code/dino/data/test'
 
     global_crops_scale: [0.4, 1.0]
     local_crops_number: 8

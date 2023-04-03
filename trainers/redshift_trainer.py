@@ -9,15 +9,16 @@ from pathlib import Path
 from os.path import join
 from trainers import BaseTrainer
 from trainers.train_utils import *
+from torch.utils.data import DataLoader, BatchSampler, RandomSampler
 
 import warnings
 warnings.filterwarnings("ignore")
 
 
 class RedshiftTrainer(BaseTrainer):
-    def __init__(self, model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs):
+    def __init__(self, model, dataset, optim_cls, optim_params, mode, **kwargs):
 
-        super().__init__(model, train_dataset, validation_dataset, optim_cls, optim_params, mode, **kwargs)
+        super().__init__(model, dataset, optim_cls, optim_params, mode, **kwargs)
         # log.info(f"{self.pipeline}, {next(self.pipeline.parameters()).device}")
 
         self.mode == mode
@@ -54,6 +55,48 @@ class RedshiftTrainer(BaseTrainer):
         # momentum parameter is increased to 1. during training with a cosine schedule
         self.momentum_schedule = cosine_scheduler(
             self.kwargs["momentum_teacher"], 1, self.num_epochs, len(self.train_data_loader))
+
+    def init_dataloader(self):
+        if self.mode == "pre_training":
+            if self.kwargs["shuffle_dataloader"]: sampler_cls = RandomSampler
+            else: sampler_cls = SequentialSampler
+
+            self.train_data_loader = DataLoader(
+                self.dataset,
+                batch_size=self.batch_size,
+                drop_last=self.kwargs["dataloader_drop_last"],
+                pin_memory=True,
+                num_workers=self.kwargs["dataloader_num_workers"]
+            )
+
+            self.iterations_per_epoch = len(self.train_data_loader)
+
+        elif self.mode == "redshift_training":
+            if self.kwargs["shuffle_dataloader"]: sampler_cls = RandomSampler
+            else: sampler_cls = SequentialSampler
+
+            self.train_data_loader = DataLoader(
+                self.dataset[0],
+                batch_size=self.batch_size,
+                drop_last=self.kwargs["dataloader_drop_last"],
+                pin_memory=True,
+                num_workers=self.kwargs["dataloader_num_workers"]
+            )
+
+            self.iterations_per_epoch = len(self.train_data_loader)
+
+            self.valid_data_loader = DataLoader(
+                self.dataset[1],
+                batch_size=self.batch_size,
+                drop_last=self.kwargs["dataloader_drop_last"],
+                pin_memory=True,
+                num_workers=self.kwargs["dataloader_num_workers"]
+            )
+
+            self.iterations_per_epoch = len(self.train_data_loader)
+
+        # else
+
 
     ################
     # Train events
@@ -132,18 +175,24 @@ class RedshiftTrainer(BaseTrainer):
                 param_group["weight_decay"] = self.wd_schedule[self.total_iterations]
 
         self.optimizer.zero_grad()
-        teacher_output, student_output = self.pipeline(data["images"])
+
+        #for i in data[0]:
+        #    print(i.shape)
+        #print(data[1:])
+
+        # teacher_output, student_output = self.pipeline(data["images"])
+        teacher_output, student_output = self.pipeline(data[0])
         loss = self.dino_loss(student_output, teacher_output, self.epoch)
         loss.backward()
-        self.pipeline.update_student(self.epoch)
+        self.pipeline.prepare_grad_update(self.epoch)
         self.optimizer.step()
         self.pipeline.update_teacher(self.total_iterations, self.momentum_schedule)
 
     def step_redshift_est(self, data):
         pass
 
-    def post_step(self):
-        self.total_iterations += 1
+    def step_redshift_est(self, data):
+        pass
 
     ############
     # Validation
