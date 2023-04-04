@@ -43,7 +43,7 @@ def get_imagenet_dataset(**kwargs):
     return [train_dataset, valid_dataset, test_dataset]
 
 def get_redshift_dataset(**kwargs):
-    dataset = RedshiftnDataset(**kwargs)
+    dataset = RedshiftDataset(**kwargs)
     if kwargs["trainer_mode"] == "pre_training":
         return [dataset]
 

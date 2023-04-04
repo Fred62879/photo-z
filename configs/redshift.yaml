@@ -47,12 +47,14 @@ trainer:
 #    validate_num_batches: 10
 
 dataset:
+    load_data_from_cache: False
     dataset_num_workers: 0
 
     # redshift_fname: 'detections_redshifts_pdf3.fits'
-    redshift_name: 'test_redshift.fits'
+    redshift_fname: 'test_redshift.fits'
     data_path: '/scratch/projects/vision/data/pdr3'
-    #dataset_name: 'protein_test'
+    crop_sz: 64
+    bands: ["G","R","I","Z","Y"]
 
     global_crops_scale: [0.4, 1.0]
     local_crops_number: 8
