@@ -1,4 +1,3 @@
-
 import torch
 import numpy as np
 import torch.nn as nn
@@ -9,14 +8,13 @@ from pathlib import Path
 from os.path import join
 from trainers import BaseTrainer
 from trainers.train_utils import *
-from torch.utils.data import DataLoader
-from dataset.samplers import PatchWiseSampler
+from torch.utils.data import DataLoader, BatchSampler, RandomSampler
 
 import warnings
 warnings.filterwarnings("ignore")
 
 
-class RedshiftTrainer(BaseTrainer):
+class ImageNetTrainer(BaseTrainer):
     def __init__(self, model, dataset, optim_cls, optim_params, mode, **kwargs):
 
         super().__init__(model, dataset, optim_cls, optim_params, mode, **kwargs)
@@ -24,7 +22,6 @@ class RedshiftTrainer(BaseTrainer):
 
         self.mode == mode
         self.init_loss()
-        self.init_dataloader()
         if self.mode == "pre_training":
             self.init_scheduler()
 
@@ -60,18 +57,13 @@ class RedshiftTrainer(BaseTrainer):
 
     def init_dataloader(self):
         if self.mode == "pre_training":
-
-            sampler = PatchWiseSampler(
-                self.dataset,
-                self.kwargs["pretrain_batch_size"],
-                self.kwargs["num_patches_per_group"])
-            # for i in sampler: print(i)
-            # assert 0
+            if self.kwargs["shuffle_dataloader"]: sampler_cls = RandomSampler
+            else: sampler_cls = SequentialSampler
 
             self.train_data_loader = DataLoader(
                 self.dataset,
-                sampler=sampler,
-                batch_size=None,
+                batch_size=self.batch_size,
+                drop_last=self.kwargs["dataloader_drop_last"],
                 pin_memory=True,
                 num_workers=self.kwargs["dataloader_num_workers"]
             )
@@ -183,9 +175,12 @@ class RedshiftTrainer(BaseTrainer):
 
         self.optimizer.zero_grad()
 
-        # print(data["crops"].shape)
-        teacher_output, student_output = self.pipeline(data["crops"])
-        # teacher_output, student_output = self.pipeline(data[0])
+        #for i in data[0]:
+        #    print(i.shape)
+        #print(data[1:])
+
+        # teacher_output, student_output = self.pipeline(data["images"])
+        teacher_output, student_output = self.pipeline(data[0])
         loss = self.dino_loss(student_output, teacher_output, self.epoch)
         loss.backward()
         self.pipeline.prepare_grad_update(self.epoch)

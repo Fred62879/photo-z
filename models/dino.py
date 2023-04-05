@@ -54,6 +54,8 @@ class DINO(nn.Module):
         # for img in images:
         #     print(img.shape)
         # assert 0
+        # print(images.shape)
+        # assert 0
         teacher_output = self.teacher(images[:2])
         student_output = self.student(images)
         return teacher_output, student_output

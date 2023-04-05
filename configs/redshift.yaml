@@ -29,7 +29,7 @@ trainer:
 
     num_epochs: 10
     warmup_epochs: 5
-    batch_size: 3
+    pretrain_batch_size: 3
     batch_size_per_gpu: 64
 
     save_every: 2
@@ -47,8 +47,10 @@ trainer:
 #    validate_num_batches: 10
 
 dataset:
-    load_data_from_cache: False
+    load_data_from_cache: True
     dataset_num_workers: 0
+
+    num_patches_per_group: 3
 
     # redshift_fname: 'detections_redshifts_pdf3.fits'
     redshift_fname: 'test_redshift.fits'

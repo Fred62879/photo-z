@@ -122,6 +122,7 @@ def define_cmd_line_args():
     train_group.add_argument("--warmup_epochs", default=10, type=int,
                              help="Number of epochs for the linear learning-rate warm up.")
     train_group.add_argument('--batch_size', default=64, type=int)
+    train_group.add_argument('--pretrain_batch_size', default=64, type=int)
     train_group.add_argument('--batch_size_per_gpu', default=64, type=int,
                              help='Per-GPU batch-size : number of distinct images \
                              loaded on one GPU.')

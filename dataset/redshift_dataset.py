@@ -18,8 +18,9 @@ from dataset.data_utils import *
 
 
 class RedshiftDataset(Dataset):
-    def __init__(self, **kwargs):
+    def __init__(self, transform=None, **kwargs):
         self.kwargs = kwargs
+        self.transform = transform
 
         self.verbose = kwargs["verbose"]
         if kwargs["use_gpu"]:
@@ -47,9 +48,21 @@ class RedshiftDataset(Dataset):
 
     def __getitem__(self, idx: list):
         if self.mode == "pre_training":
-            ret = {"cutouts": self.cutouts[index]}
+
+            if idx[0] == -1:
+                idx = self.switch_patch(idx)
+                #print(self.cur_crops.shape, self.cur_specz.shape, self.cur_specz_isnull.shape)
+            # print(idx)
+            # print(self.cur_crops.shape, idx)
+
+            crops = self.cur_crops[idx]
+            if self.transform is not None:
+                crops = self.transform(crops)
+
+            return {"crops": crops}
+
         return {
-            "cutouts": self.cutouts[index],
+            "crops": self.crops[index],
             "redshift": self.redshifts[index]
         }
 
@@ -58,7 +71,7 @@ class RedshiftDataset(Dataset):
     #############
 
     def get_num_crops(self):
-        """ list, each value being the #crops of a patch
+        """ returns a list, each value being the #crops of a patch
         """
         return self.num_crops
 
@@ -76,6 +89,23 @@ class RedshiftDataset(Dataset):
     # Helpers
     #############
 
+    def switch_patch(self, idx):
+        num_patches = idx[1]
+        patch_ids = idx[2 : 2+num_patches]
+
+        crops, specz, specz_isnull = [], [], []
+        for patch_id in patch_ids:
+            out_fname_prefix = join(self.ssl_redshift_data_path, self.fits_fnames[patch_id][:-4])
+            crops.append(np.load(f"{out_fname_prefix}_crops.npy"))
+            specz.append(np.load(f"{out_fname_prefix}_specz.npy"))
+            specz_isnull.append(np.load(f"{out_fname_prefix}_specz_isnull.npy"))
+
+        self.cur_crops = np.concatenate(crops, axis=0)
+        self.cur_specz = np.concatenate(specz, axis=0)
+        self.cur_specz_isnull = np.concatenate(specz_isnull, axis=0)
+
+        return idx[num_patches + 2:]
+
     def load_redshift(self):
         """ Read redshift (meta) data.
             Since source table is huge, we need to avoid loading it when possible.
@@ -88,22 +118,23 @@ class RedshiftDataset(Dataset):
         """
         self.data = defaultdict(lambda x: None)
 
-        if self.load_data_from_cache and exists(self.redshift_meta_info_fname):
+        if self.load_data_from_cache and exists(self.meta_data_fname):
             with open(self.meta_data_fname, "rb") as fp:
-                (self.num_patches, self.tracts, self.patches, self.fits_fnames) = pickle.load(fp)
+                (self.num_crops, self.tracts, self.patches, self.fits_fnames) = pickle.load(fp)
         else:
             df = self.read_source_redshift()
             num_crops = self.crop_patch(df)
 
             # flatten list
             self.num_crops = reduce(lambda cur, acc: cur + acc, num_crops)
-            self.total_num_crops = sum(self.num_crops)
             self.fits_fnames = reduce(lambda cur, acc: cur + acc, self.fits_fnames)
 
             # save locally
             meta = [self.num_crops, self.tracts, self.patches, self.fits_fnames]
             with open(self.meta_data_fname, "wb") as fp:
                 pickle.dump(meta, fp)
+
+        self.total_num_crops = sum(self.num_crops)
 
     def read_source_redshift(self):
         """ Read redshift data from source table (dataframe).

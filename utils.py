@@ -6,9 +6,10 @@ import torchvision
 import numpy as np
 
 from models import DINO
-from trainers import RedshiftTrainer
 from torch.utils.data import random_split
+from dataset.transforms import DataAugmentationDINO
 from dataset import RedshiftDataset, ImageNetDataset
+from trainers import RedshiftTrainer, ImageNetTrainer
 
 logger_initialized = {}
 
@@ -43,13 +44,22 @@ def get_imagenet_dataset(**kwargs):
     return [train_dataset, valid_dataset, test_dataset]
 
 def get_redshift_dataset(**kwargs):
-    dataset = RedshiftDataset(**kwargs)
     if kwargs["trainer_mode"] == "pre_training":
+        transform = DataAugmentationDINO(
+            kwargs["global_crops_scale"],
+            kwargs["local_crops_scale"],
+            kwargs["local_crops_number"],
+        )
+        dataset = RedshiftDataset(transform=transform, **kwargs)
         return [dataset]
 
+    dataset = RedshiftDataset(**kwargs)
     train_dataset, valid_dataset, test_dataset = random_split(
         dataset, range(len(dataset)), kwargs["split_ratio"])
     return [train_dataset, valid_dataset, test_dataset]
+
+def get_imagenet_trainer(model, dataset, optim_cls, optim_params, mode, **kwargs):
+    return ImageNetTrainer(model, dataset, optim_cls, optim_params, mode, **kwargs)
 
 def get_redshift_trainer(model, dataset, optim_cls, optim_params, mode, **kwargs):
     return RedshiftTrainer(model, dataset, optim_cls, optim_params, mode, **kwargs)

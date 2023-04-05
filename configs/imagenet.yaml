@@ -30,6 +30,7 @@ trainer:
     num_epochs: 10
     warmup_epochs: 5
     batch_size: 3
+    pretrain_batch_size: 1
     batch_size_per_gpu: 64
 
     save_every: 2

@@ -121,7 +121,7 @@ def define_cmd_line_args():
                              help='Number of epochs of training.')
     train_group.add_argument("--warmup_epochs", default=10, type=int,
                              help="Number of epochs for the linear learning-rate warm up.")
-    train_group.add_argument('--batch_size', default=64, type=int)
+    train_group.add_argument('--pretrain-batch-size', default=64, type=int)
     train_group.add_argument('--batch_size_per_gpu', default=64, type=int,
                              help='Per-GPU batch-size : number of distinct images \
                              loaded on one GPU.')
@@ -177,6 +177,7 @@ def define_cmd_line_args():
     data_group.add_argument("--shuffle-dataloader", action="store_true")
     data_group.add_argument("--dataloader-drop-last", action="store_true")
     data_group.add_argument("--dataloader-num-workers", type=int, default=0)
+    data_group.add_argument("--num-patches-per-group", type=int, default=1)
 
     data_group.add_argument("--data-path", type=str, help="Path to the dataset")
     data_group.add_argument("--redshift-fname", type=str, help="Filename of source redshift.")

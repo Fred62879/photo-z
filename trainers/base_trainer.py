@@ -65,7 +65,10 @@ class BaseTrainer(ABC):
         self.epoch = 1
         self.iteration = 0
         self.num_epochs = kwargs["num_epochs"]
-        self.batch_size = kwargs["batch_size"]
+        if mode == "pre_training":
+            self.batch_size = kwargs["pretrain_batch_size"]
+        elif mode == "redshift_train":            assert 0
+
         self.exp_name = kwargs["exp_name"]
 
         # In-training variables
@@ -83,8 +86,8 @@ class BaseTrainer(ABC):
         self.dataset = dataset
 
         if kwargs["dataloader_drop_last"]:
-            self.num_batches = len(self.dataset) // kwargs["batch_size"]
-        else: self.num_batches = int(np.ceil(len(self.dataset) / kwargs["batch_size"]))
+            self.num_batches = len(self.dataset) // self.batch_size
+        else: self.num_batches = int(np.ceil(len(self.dataset) / self.batch_size))
 
         self.pipeline = pipeline
         log.info("Total number of parameters: {}".format(
