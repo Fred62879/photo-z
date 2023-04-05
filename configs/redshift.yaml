@@ -47,7 +47,8 @@ trainer:
 #    validate_num_batches: 10
 
 dataset:
-    load_data_from_cache: True
+    load_data_from_cache: False
+    plot_crops: True
     dataset_num_workers: 0
 
     num_patches_per_group: 3
@@ -56,6 +57,8 @@ dataset:
     redshift_fname: 'test_redshift.fits'
     data_path: '/scratch/projects/vision/data/pdr3'
     crop_sz: 64
+
+    sensor_collection_name: '5_grizy'
     bands: ["G","R","I","Z","Y"]
 
     global_crops_scale: [0.4, 1.0]

@@ -174,6 +174,7 @@ def define_cmd_line_args():
     data_group = parser.add_argument_group("dataset")
 
     data_group.add_argument("--load-data-from-cache", action="store_true")
+    data_group.add_argument("--plot-crops", action="store_true")
     data_group.add_argument("--shuffle-dataloader", action="store_true")
     data_group.add_argument("--dataloader-drop-last", action="store_true")
     data_group.add_argument("--dataloader-num-workers", type=int, default=0)
@@ -186,6 +187,7 @@ def define_cmd_line_args():
                             supports multiprocessing. -1 indicates no multiprocessing.")
     data_group.add_argument("--crop-sz", type=str, help="Size of crop.")
     data_group.add_argument("--bands", type=str, nargs="+", help="Band of images.")
+    data_group.add_argument("--sensor-collection-name", type=str, help="Choice of band col.")
 
     data_group.add_argument('--saveckp_freq', default=20, type=int,
                         help='Save checkpoint every x epochs.')
