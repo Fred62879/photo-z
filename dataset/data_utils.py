@@ -62,8 +62,8 @@ def plot_horizontally(imgs, png_fname, plot_option="plot_img", zscale_ranges=Non
     num_imgs, num_bands, _, _ = imgs.shape
     fig = plt.figure(figsize=(3*num_bands + 1,3*num_imgs + 1))
 
-    for img in imgs:
-        plot_one_row(fig, 1, num_bands, 0, img, num_bands,
+    for i, img in enumerate(imgs):
+        plot_one_row(fig, num_imgs, num_bands, i*num_bands, img, num_bands,
                      plot_option, vmins, vmaxs, cal_z_range=cal_z_range)
 
     fig.tight_layout()

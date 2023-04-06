@@ -52,12 +52,10 @@ class DINO(nn.Module):
     def forward(self, images):
         # only the 2 global views pass through the teacher
         # for img in images:
-        #     print(img.shape)
-        # assert 0
-        # print(images.shape)
-        # assert 0
-        teacher_output = self.teacher(images[:2])
-        student_output = self.student(images)
+        #     print(img.shape) # [bsz,nbands/3,sz/224,sz/224]
+        teacher_output = self.teacher(images[:2]) # [2*bsz,outdim/65536]
+        student_output = self.student(images)     # [10*bsz,outdim/65536]
+        # print(teacher_output.shape, student_output.shape)
         return teacher_output, student_output
 
     def prepare_grad_update(self, epoch):

@@ -75,13 +75,12 @@ class RedshiftDataset(Dataset):
 
     def plot_crops(self):
         for fits_fname in self.fits_fnames:
-            crops_fname = join(self.ssl_redshift_data_path, fits_fname[:-5] + "_crops.npy")
+            crops_fname = join(self.ssl_redshift_data_path, fits_fname[:-5] + "_crops")
             zscale_fname = join(self.ssl_redshift_data_path, fits_fname[:-5] + "_zscale_range.npy")
-            crops = np.load(crops_fname) # [num_crops,num_bands,sz,sz]
-            zscale_range = np.load(zscale_fname) # [2,num_bands]
-            print(crops.shape, zscale_range)
-            ids = np.random.choice(len(crops))
-            plot_horizontally(
+            crops = np.load(crops_fname + ".npy") # [num_crops,num_bands,sz,sz]
+            zscale_range = np.load(zscale_fname)  # [2,num_bands]
+            ids = np.random.choice(len(crops), self.kwargs["num_crops_to_plot"], replace=False)
+            plot_horizontally(crops[ids], crops_fname + ".png", zscale_ranges=zscale_range)
 
     def __len__(self):
         if self.mode == "pre_training":
@@ -201,9 +200,9 @@ class RedshiftDataset(Dataset):
                 cur_specz_isnull_fname = f"{out_fname_prefix}_specz_isnull.npy"
                 cur_patch_zscale_range_fname = f"{out_fname_prefix}_zscale_range.npy"
 
-                # if exists(cur_crops_fname) and exists(cur_specz_fname) and \
-                #    exists(cur_specz_isnull_fname) and \
-                #    exists(cur_patch_zscale_range_fname): continue
+                if exists(cur_crops_fname) and exists(cur_specz_fname) and \
+                   exists(cur_specz_isnull_fname) and \
+                   exists(cur_patch_zscale_range_fname): continue
 
                 cur_entries = df.loc[ (df["tract"] == self.tracts[i]) &
                                       (df["patch"] == self.patches[i][j]) ]
@@ -217,8 +216,8 @@ class RedshiftDataset(Dataset):
                     specz_isnull = np.array(list(cur_entries["specz_redshift_isnull"]))
                     np.save(cur_specz_isnull_fname, specz_isnull)
 
-                # if exists(cur_crops_fname) and exists(cur_patch_zscale_range_fname):
-                #    continue
+                if exists(cur_crops_fname) and exists(cur_patch_zscale_range_fname):
+                    continue
 
                 # crop around each specz center pixel
                 ras = list(cur_entries["ra"])
@@ -248,6 +247,7 @@ class RedshiftDataset(Dataset):
                 np.save(cur_patch_zscale_range_fname, zscale_ranges)
 
                 # generate crops
+                # print(self.fits_fnames[i][j], rs, cs)
                 for r,c in zip(rs,cs):
                     cur_crops.append(
                         cur_patch[:, r-offset:r+offset, c-offset:c+offset])

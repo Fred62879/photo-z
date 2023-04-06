@@ -47,16 +47,22 @@ trainer:
 #    validate_num_batches: 10
 
 dataset:
-    load_data_from_cache: False
+    load_data_from_cache: True
     plot_crops: True
+    num_crops_to_plot: 10
     dataset_num_workers: 0
+
+    dino_global_crop_dim: 84
+    dino_local_crop_dim: 64
+    dino_num_local_crops: 8
+    dino_jitter_lim: 10
 
     num_patches_per_group: 3
 
     # redshift_fname: 'detections_redshifts_pdf3.fits'
     redshift_fname: 'test_redshift.fits'
     data_path: '/scratch/projects/vision/data/pdr3'
-    crop_sz: 64
+    crop_sz: 96
 
     sensor_collection_name: '5_grizy'
     bands: ["G","R","I","Z","Y"]

@@ -1,10 +1,10 @@
 
 from torchvision import datasets
-from dataset.transforms import DataAugmentationDINO
+from dataset.transforms import ImageNetDINOTransform
 
 
 def ImageNetDataset(**kwargs):
-    transform = DataAugmentationDINO(
+    transform = ImageNetDINOTransform(
         kwargs["global_crops_scale"],
         kwargs["local_crops_scale"],
         kwargs["local_crops_number"],

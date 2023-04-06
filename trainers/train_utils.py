@@ -54,12 +54,18 @@ class DINOLoss(nn.Module):
         """ Cross-entropy between softmax outputs of the teacher and student networks.
         """
         student_out = student_output / self.student_temp
+        # print('*', student_out.shape) # [bsz*ncrops,outdim]
         student_out = student_out.chunk(self.ncrops)
+        # for i in student_out:
+        #     print(i.shape) # [bsz,outdim]
 
         # teacher centering and sharpening
         temp = self.teacher_temp_schedule[epoch]
         teacher_out = F.softmax((teacher_output - self.center) / temp, dim=-1)
+        # print(teacher_out.shape) # [bsz*2,outdim]
         teacher_out = teacher_out.detach().chunk(2)
+        # for i in teacher_out:
+        #     print(i.shape) # [bsz,outdim]
 
         total_loss = 0
         n_loss_terms = 0

@@ -175,10 +175,16 @@ def define_cmd_line_args():
 
     data_group.add_argument("--load-data-from-cache", action="store_true")
     data_group.add_argument("--plot-crops", action="store_true")
+    data_group.add_argument("--num-crops-to-plot", type=int, default=1)
     data_group.add_argument("--shuffle-dataloader", action="store_true")
     data_group.add_argument("--dataloader-drop-last", action="store_true")
     data_group.add_argument("--dataloader-num-workers", type=int, default=0)
     data_group.add_argument("--num-patches-per-group", type=int, default=1)
+
+    data_group.add_argument("--dino-global-crop-dim", type=int, default=1)
+    data_group.add_argument("--dino-local-crop-dim", type=int, default=1)
+    data_group.add_argument("--dino-num-local-crops", type=int, default=1)
+    data_group.add_argument("--dino-jitter-lim", type=int, default=1)
 
     data_group.add_argument("--data-path", type=str, help="Path to the dataset")
     data_group.add_argument("--redshift-fname", type=str, help="Filename of source redshift.")
