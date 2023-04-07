@@ -90,6 +90,7 @@ class RedshiftDataset(Dataset):
 
     def __getitem__(self, idx: list):
         if self.mode == "pre_training":
+            print(idx)
 
             if idx[0] == -1:
                 idx = self.switch_patch(idx)

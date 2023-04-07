@@ -241,10 +241,10 @@ class VisionTransformer(nn.Module):
         return output
 
 
-def vit_tiny(patch_size=16, **kwargs):
+def vit_tiny(patch_size=16, in_chans=3, **kwargs):
     model = VisionTransformer(
-        patch_size=patch_size, embed_dim=192, depth=12, num_heads=3, mlp_ratio=4,
-        qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+        patch_size=patch_size, embed_dim=192, in_chans=in_chans, depth=12, num_heads=3,
+        mlp_ratio=4, qkv_bias=True, norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
     return model
 
 

@@ -67,7 +67,8 @@ class BaseTrainer(ABC):
         self.num_epochs = kwargs["num_epochs"]
         if mode == "pre_training":
             self.batch_size = kwargs["pretrain_batch_size"]
-        elif mode == "redshift_train":            assert 0
+        elif mode == "redshift_train":
+            assert 0
 
         self.exp_name = kwargs["exp_name"]
 
@@ -83,17 +84,12 @@ class BaseTrainer(ABC):
         self.log_cli_every = kwargs["log_cli_every"]
         self.render_tb_every = kwargs["render_tb_every"]
 
-        self.dataset = dataset
-
-        if kwargs["dataloader_drop_last"]:
-            self.num_batches = len(self.dataset) // self.batch_size
-        else: self.num_batches = int(np.ceil(len(self.dataset) / self.batch_size))
-
         self.pipeline = pipeline
         log.info("Total number of parameters: {}".format(
             sum(p.numel() for p in self.pipeline.parameters()))
         )
 
+        self.dataset = dataset
         self.init_dataloader()
         self.init_optimizer(optim_cls, **optim_params)
 
@@ -186,7 +182,7 @@ class BaseTrainer(ABC):
             self.epoch = epoch
             self.begin_epoch()
 
-            for iteration in range(self.num_batches):
+            for iteration in range(self.iterations_per_epoch):
                 self.iteration = iteration
                 self.pre_step()
                 data = self.next_batch()
@@ -432,8 +428,8 @@ class BaseTrainer(ABC):
     @iterations_per_epoch.setter
     def iterations_per_epoch(self, iterations: int):
         """ How many iterations should run per epoch """
-        #self.scene_state.optimization.iterations_per_epoch = iterations
-        log.info("!!!!!!! ALERT !!!!!!!")
+        # self.scene_state.optimization.iterations_per_epoch = iterations
+        # log.info("!!!!!!! ALERT !!!!!!!")
         self.num_batches = iterations
 
     @property

@@ -9,8 +9,16 @@ from PIL import ImageFilter, ImageOps
 
 
 class RandomRotate:
-  def __call__(self, image):
-    return (sk_transform.rotate(image, np.float32(360*np.random.rand(1)))).astype(np.float32)
+    def __init__(self, mode="wrap"):
+        self.mode = mode
+
+    def __call__(self, image):
+        bsz = image.shape[0]
+        degs = np.float32(360*np.random.rand(bsz))
+        for i in range(bsz):
+            image[i] = sk_transform.rotate(image[i], degs[i], mode=self.mode)
+        return image
+        # return (sk_transform.rotate(image, deg)).astype(np.float32)
 
 class JitterCrop:
     def __init__(self, outdim, jitter_lim=None):
@@ -19,17 +27,43 @@ class JitterCrop:
         self.offset = self.outdim//2
 
     def __call__(self, image):
-        print("JC", image.shape, image.dtype)
-        assert 0
-        center_x = image.shape[-1]//2
-        center_y = image.shape[-2]//2
-        if self.jitter_lim:
-            center_x += int(np.random.randint(-self.jitter_lim, self.jitter_lim+1, 1))
-            center_y += int(np.random.randint(-self.jitter_lim, self.jitter_lim+1, 1))
+        """ Batched cropping operation
+            @Param
+               image [bsz,nbands,sz,sz]
+            @Return
+               image [bsz,nbands,offset*2,offset*2]
+        """
+        # image = image[:,:3,:4,:4]
+        # self.offset = 1
+        # self.jitter_lim = 1
+        # print("JC", image.shape, image.dtype)
 
-        return image[:,:,
-                     (center_x-self.offset):(center_x+self.offset),
-                     (center_y-self.offset):(center_y+self.offset)]
+        bsz, nbands, sz, _ = image.shape
+        center_x = image.shape[-2]//2
+        center_y = image.shape[-1]//2
+
+        if self.jitter_lim:
+            center_x += np.random.randint(-self.jitter_lim, self.jitter_lim+1, bsz)
+            center_y += np.random.randint(-self.jitter_lim, self.jitter_lim+1, bsz)
+        else:
+            center_x = [center_x]
+            center_y = [center_y]
+
+        center_x = np.array(center_x)
+        center_y = np.array(center_y)
+
+        x_indices = np.vstack(np.arange(start, end) for start, end in zip(
+            center_x-self.offset, center_x+self.offset
+        ))
+        x_indices = np.tile(x_indices[:,None,:,None], (1,nbands,1,1))
+        image = np.take_along_axis(image, x_indices, -2)
+
+        y_indices = np.vstack(np.arange(start, end) for start, end in zip(
+            center_y-self.offset, center_y+self.offset
+        ))
+        y_indices = np.tile(y_indices[:,None,None], (1,nbands,1,1))
+        image = np.take_along_axis(image, y_indices, -1)
+        return image
 
 class SDSSDR12Reddening:
     def __init__(self, deredden = False, redden_aug = False, ebv_max = 0.5):
@@ -41,12 +75,13 @@ class SDSSDR12Reddening:
 
     def __call__(self, data):
         if type(data)==list:
-          image = data[0]
-          if self.deredden:
-            dr12_ext = data[1]
-            sfd_ebv = np.mean(dr12_ext/self.R_dr12)
-            true_ext = self.R * sfd_ebv
-            image = np.float32(image * (10.**(true_ext/2.5))) # deredden image
+            image = data[0]
+            if self.deredden:
+                dr12_ext = data[1]
+                sfd_ebv = np.mean(dr12_ext/self.R_dr12)
+                true_ext = self.R * sfd_ebv
+                image = np.float32(
+                    image * (10.**(true_ext/2.5))) # deredden image
         else:
             image = data
             if self.deredden:
@@ -65,22 +100,22 @@ class RedshiftDINOTransform(object):
         self.global_transform1 = transforms.Compose([
             JitterCrop(kwargs["dino_global_crop_dim"]),
             #GaussianBlur(1.0)
-            transforms.ToTensor(),
+            #transforms.ToTensor(),
         ])
         # second global crop
         self.global_transform2 = transforms.Compose([
-            SDSSDR12Reddening(deredden=True),
+            #SDSSDR12Reddening(deredden=True),
             JitterCrop(kwargs["dino_global_crop_dim"]),
             #GaussianBlur(1.0)
-            transforms.ToTensor(),
+            #transforms.ToTensor(),
         ])
         # transformation for the local small crops
         self.local_crops_number = kwargs["dino_num_local_crops"]
         self.local_transform = transforms.Compose([
-            RandomRotate(),
             JitterCrop(kwargs["dino_local_crop_dim"], kwargs["dino_jitter_lim"]),
+            RandomRotate(kwargs["dino_rotate_mode"]),
             #GaussianBlur(p=0.5),
-            transforms.ToTensor(),
+            #transforms.ToTensor(),
         ])
 
     def __call__(self, image):

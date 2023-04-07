@@ -52,6 +52,7 @@ def define_cmd_line_args():
                         torchvision_archs + torch.hub.list("facebookresearch/xcit:main"),
                         help="""Name of architecture to train. For quick experiments with \
                         ViTs, we recommend using vit_tiny or vit_small.""")
+    net_group.add_argument('--in-chans', default=3, type=int)
     net_group.add_argument('--patch_size', default=16, type=int,
                         help="""Size in pixels of input square patches - default 16 \
                         (for 16x16 patches). Using smaller values leads to better \
@@ -185,6 +186,7 @@ def define_cmd_line_args():
     data_group.add_argument("--dino-local-crop-dim", type=int, default=1)
     data_group.add_argument("--dino-num-local-crops", type=int, default=1)
     data_group.add_argument("--dino-jitter-lim", type=int, default=1)
+    data_group.add_argument("--dino-rotate-mode", type=str, default="wrap")
 
     data_group.add_argument("--data-path", type=str, help="Path to the dataset")
     data_group.add_argument("--redshift-fname", type=str, help="Filename of source redshift.")

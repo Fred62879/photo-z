@@ -66,7 +66,6 @@ class RedshiftTrainer(BaseTrainer):
                 self.kwargs["pretrain_batch_size"],
                 self.kwargs["num_patches_per_group"])
             # for i in sampler: print(i)
-            # assert 0
 
             self.train_data_loader = DataLoader(
                 self.dataset,
@@ -76,7 +75,14 @@ class RedshiftTrainer(BaseTrainer):
                 num_workers=self.kwargs["dataloader_num_workers"]
             )
 
-            self.iterations_per_epoch = len(self.train_data_loader)
+            # if kwargs["dataloader_drop_last"]:
+            #     self.num_batches = len(self.dataset) // self.batch_size
+            # else: self.num_batches = int(np.ceil(len(self.dataset) / self.batch_size))
+            # self.num_batches = len(self.dataset) // self.batch_size
+            # print(len(self.dataset), self.batch_size)
+
+            self.iterations_per_epoch = int(np.ceil(
+                len(self.train_data_loader) / self.batch_size))
 
         elif self.mode == "redshift_training":
             if self.kwargs["shuffle_dataloader"]: sampler_cls = RandomSampler
@@ -182,12 +188,12 @@ class RedshiftTrainer(BaseTrainer):
                 param_group["weight_decay"] = self.wd_schedule[self.total_iterations]
 
         self.optimizer.zero_grad()
+        self.add_to_device(data["crops"])
 
-        # print(data["crops"].shape)
         teacher_output, student_output = self.pipeline(data["crops"])
-        # teacher_output, student_output = self.pipeline(data[0])
         loss = self.dino_loss(student_output, teacher_output, self.epoch)
         loss.backward()
+
         self.pipeline.prepare_grad_update(self.epoch)
         self.optimizer.step()
         self.pipeline.update_teacher(self.total_iterations, self.momentum_schedule)
@@ -242,8 +248,17 @@ class RedshiftTrainer(BaseTrainer):
 
     def add_to_device(self, data):
         # images, specz_bin = map(lambda x: x.to(self.device), data[:2])
-        for field in data:
-            data[field] = data[field].to(self.device)
+
+        if type(data) == torch.Tensor:
+            data = data.to(self.device)
+        elif type(data) == list:
+            for i in range(len(data)):
+                data[i] = data[i].to(self.device)
+        elif type(data) == dict:
+            for field in data:
+                data[field] = data[field].to(self.device)
+        else:
+            assert 0
 
     ############
     # Setters

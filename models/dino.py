@@ -22,6 +22,7 @@ class DINO(nn.Module):
         # print(vits.__dict__.keys())
         vit = vits.__dict__[self.kwargs["arch"]](
             patch_size=self.kwargs["patch_size"],
+            in_chans=self.kwargs["in_chans"],
             drop_path_rate=self.kwargs["drop_path_rate"],  # stochastic depth
         )
 
@@ -34,7 +35,10 @@ class DINO(nn.Module):
         )
 
         self.teacher = MultiCropWrapper(
-            vits.__dict__[self.kwargs["arch"]](patch_size=self.kwargs["patch_size"]),
+            vits.__dict__[self.kwargs["arch"]](
+                patch_size=self.kwargs["patch_size"],
+                in_chans=self.kwargs["in_chans"],
+            ),
             DINOHead(embed_dim, self.kwargs["out_dim"], self.kwargs["use_bn_in_head"]),
         )
 

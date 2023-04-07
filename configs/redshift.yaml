@@ -17,6 +17,7 @@ network:
     out_dim: 65536
     norm_last_layer: True
     use_bn_in_head: False
+    in_chans: 5
 
     momentum_teacher: 0.996
     teacher_temp: 0.04
@@ -55,6 +56,7 @@ dataset:
     dino_global_crop_dim: 84
     dino_local_crop_dim: 64
     dino_num_local_crops: 8
+    dino_rotate_mode: "wrap"
     dino_jitter_lim: 10
 
     num_patches_per_group: 3

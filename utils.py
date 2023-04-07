@@ -32,6 +32,7 @@ def get_dino_pipeline(**kwargs):
     model = DINO(**kwargs)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
+    # print(model)
     return model
 
 def get_imagenet_dataset(**kwargs):
