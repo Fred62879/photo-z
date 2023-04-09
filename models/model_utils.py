@@ -4,6 +4,18 @@ import torch
 import torch.nn as nn
 
 
+def load_model_prefixed_state(model_state_dict, model, prefix):
+    """ Load model states from dict to model.
+        Only load layer whose name starts with prefix.
+    """
+    cur_state = model.state_dict()
+    pretrained_dict = {}
+    for k, v in model_state_dict.items():
+        if prefix not in k: continue
+        k = k[len(prefix):]
+        pretrained_dict[k] = v
+    model.load_state_dict(pretrained_dict)
+
 def clip_gradients(model, clip):
     norms = []
     for name, p in model.named_parameters():

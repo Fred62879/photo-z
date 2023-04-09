@@ -95,7 +95,8 @@ def define_cmd_line_args():
 
     train_group = parser.add_argument_group("trainer")
 
-    train_group.add_argument("--trainer-mode", type=str)
+    train_group.add_argument("--trainer-mode", type=str, choices=[
+        "pre_training", "redshift_train", "redshift_test"])
     train_group.add_argument("--save-every", type=int, default=100,
                              help="Save the model at every N epoch.")
     train_group.add_argument("--render-tb-every", type=int, default=-1,
@@ -113,7 +114,9 @@ def define_cmd_line_args():
 
     train_group.add_argument("--resume-train", action="store_true")
     train_group.add_argument("--resume-log-dir", type=str)
-    train_group.add_argument("--pretrained-model-name", type=str)
+    train_group.add_argument("--resume-model-name", type=str)
+    train_group.add_argument("--pretrained-log-dir", type=str)
+    train_group.add_argument("--pretrained-model-fname", type=str)
 
     train_group.add_argument("--log-dir", type=str, default="_results/logs/runs/",
                              help="Log file directory for checkpoints.")
@@ -188,6 +191,8 @@ def define_cmd_line_args():
     data_group.add_argument("--dino-jitter-lim", type=int, default=1)
     data_group.add_argument("--dino-rotate-mode", type=str, default="wrap")
 
+    data_group.add_argument("--split-ratio", type=int, nargs="+")
+
     data_group.add_argument("--data-path", type=str, help="Path to the dataset")
     data_group.add_argument("--redshift-fname", type=str, help="Filename of source redshift.")
     data_group.add_argument("--dataset-num-workers", type=int, default=-1,
@@ -198,20 +203,19 @@ def define_cmd_line_args():
     data_group.add_argument("--sensor-collection-name", type=str, help="Choice of band col.")
 
     data_group.add_argument('--saveckp_freq', default=20, type=int,
-                        help='Save checkpoint every x epochs.')
+                            help='Save checkpoint every x epochs.')
     data_group.add_argument('--seed', default=0, type=int, help='Random seed.')
     data_group.add_argument("--dist_url", default="env://", type=str,
-                        help="""url used to set up distributed training; \
-                        see https://pytorch.org/docs/stable/distributed.html""")
+                            help="""url used to set up distributed training; \
+                            see https://pytorch.org/docs/stable/distributed.html""")
     data_group.add_argument("--local_rank", default=0, type=int,
-                        help="Please ignore and do not set this argument.")
-
+                            help="Please ignore and do not set this argument.")
     data_group.add_argument('--global_crops_scale', type=float, nargs='+', default=(0.4, 1.),
-                        help="""Scale range of the cropped image before resizing, relatively \
-                        to the origin image. Used for large global view cropping. \
-                        When disabling multi-crop (--local_crops_number 0), we recommand \
-                        using a wider range of scale ("--global_crops_scale 0.14 1." \
-                        for example)""")
+                            help="""Scale range of the cropped image before resizing,
+                            relatively to the origin image. Used for large global view cropping.
+                            When disabling multi-crop (--local_crops_number 0), we recommand \
+                            using a wider range of scale ("--global_crops_scale 0.14 1." \
+                            for example)""")
     data_group.add_argument('--local_crops_number', type=int, default=8,
                             help="""Number of small local views to generate. Set this \
                             parameter to 0 to disable multi-crop training. When disabling \

@@ -18,8 +18,9 @@ from dataset.data_utils import *
 
 
 class RedshiftDataset(Dataset):
-    def __init__(self, transform=None, **kwargs):
+    def __init__(self, transform=None, mode="pre_training", **kwargs):
         self.kwargs = kwargs
+        self.mode = mode
         self.transform = transform
 
         self.verbose = kwargs["verbose"]
@@ -27,7 +28,6 @@ class RedshiftDataset(Dataset):
             self.device = torch.device('cuda')
         else: self.device = torch.device("cpu")
 
-        self.mode = "pre_training"
         self.load_data_from_cache = kwargs["load_data_from_cache"]
         self.set_log_path()
         self.load_redshift()
@@ -38,8 +38,10 @@ class RedshiftDataset(Dataset):
         input_path = join(self.kwargs["data_path"], "input")
         self.source_fits_path = join(input_path, "input_fits")
         self.source_redshift_fname = join(input_path, "redshift", self.kwargs["redshift_fname"])
-        self.meta_data_fname = join(input_path, "redshift", "meta_data.txt")
-        self.ssl_redshift_data_path = join(input_path, "ssl_redshift")
+
+        folder = "pre_train" if self.mode == "pre_training" else "redshift_train"
+        self.ssl_redshift_data_path = join(input_path, "ssl_redshift", folder)
+        self.meta_data_fname = join(self.ssl_redshift_data_path, "meta_data.txt")
         Path(self.ssl_redshift_data_path).mkdir(parents=True, exist_ok=True)
 
     def load_redshift(self):
@@ -79,33 +81,43 @@ class RedshiftDataset(Dataset):
             zscale_fname = join(self.ssl_redshift_data_path, fits_fname[:-5] + "_zscale_range.npy")
             crops = np.load(crops_fname + ".npy") # [num_crops,num_bands,sz,sz]
             zscale_range = np.load(zscale_fname)  # [2,num_bands]
-            ids = np.random.choice(len(crops), self.kwargs["num_crops_to_plot"], replace=False)
+            ids = np.random.choice(
+                len(crops),
+                min(len(crops), self.kwargs["num_crops_to_plot"]),
+                replace=False
+            )
             plot_horizontally(crops[ids], crops_fname + ".png", zscale_ranges=zscale_range)
 
     def __len__(self):
         if self.mode == "pre_training":
             return self.get_total_num_crops()
-        assert 0
-        return 0
+        elif self.mode == "redshift_train":
+            return self.get_total_num_crops()
+        elif self.mode == "redshift_test":
+            pass
+        else: raise ValueError("Unsupported trainer mode")
 
     def __getitem__(self, idx: list):
+        print(idx)
+
         if self.mode == "pre_training":
-            print(idx)
-
-            if idx[0] == -1:
-                idx = self.switch_patch(idx)
-                #print(self.cur_crops.shape, self.cur_specz.shape, self.cur_specz_isnull.shape)
-            # print(self.cur_crops.shape, idx)
-
-            crops = self.cur_crops[idx]
-            if self.transform is not None:
-                crops = self.transform(crops)
-            return {"crops": crops}
+            return self._pre_training_getitem(idx)
 
         return {
             "crops": self.crops[index],
             "redshift": self.redshifts[index]
         }
+
+    def _pre_training_getitem(self, idx):
+        if idx[0] == -1:
+            idx = self.switch_patch(idx)
+            #print(self.cur_crops.shape, self.cur_specz.shape, self.cur_specz_isnull.shape)
+        # print(self.cur_crops.shape, idx)
+
+        crops = self.cur_crops[idx]
+        if self.transform is not None:
+            crops = self.transform(crops)
+        return {"crops": crops}
 
     #############
     # Getters
@@ -201,21 +213,25 @@ class RedshiftDataset(Dataset):
                 cur_specz_isnull_fname = f"{out_fname_prefix}_specz_isnull.npy"
                 cur_patch_zscale_range_fname = f"{out_fname_prefix}_zscale_range.npy"
 
-                if exists(cur_crops_fname) and exists(cur_specz_fname) and \
-                   exists(cur_specz_isnull_fname) and \
-                   exists(cur_patch_zscale_range_fname): continue
+                # if exists(cur_crops_fname) and exists(cur_specz_fname) and \
+                #    exists(cur_specz_isnull_fname) and \
+                #    exists(cur_patch_zscale_range_fname): continue
 
                 cur_entries = df.loc[ (df["tract"] == self.tracts[i]) &
                                       (df["patch"] == self.patches[i][j]) ]
 
-                # get current spectroscopic redshifts
-                if not exists(cur_specz_fname):
-                    specz = np.array(list(cur_entries["specz_redshift"])).astype(np.float32)
-                    np.save(cur_specz_fname, specz)
+                if self.mode != "pre_training":
+                    # get only entries whose specz is not null
+                    cur_entries = cur_entries.loc[ df["specz_redshift_isnull"] == False ]
 
-                if not exists(cur_specz_isnull_fname):
-                    specz_isnull = np.array(list(cur_entries["specz_redshift_isnull"]))
-                    np.save(cur_specz_isnull_fname, specz_isnull)
+                    # get current spectroscopic redshifts
+                    if not exists(cur_specz_fname):
+                        specz = np.array(list(cur_entries["specz_redshift"])).astype(np.float32)
+                        np.save(cur_specz_fname, specz)
+
+                    # if not exists(cur_specz_isnull_fname):
+                    #     specz_isnull = np.array(list(cur_entries["specz_redshift_isnull"]))
+                    #     np.save(cur_specz_isnull_fname, specz_isnull)
 
                 if exists(cur_crops_fname) and exists(cur_patch_zscale_range_fname):
                     continue

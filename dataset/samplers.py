@@ -25,6 +25,8 @@ class PatchWiseSampler(Sampler):
     """
     def __init__(self, data_source, batch_size, num_patches_per_group):
         self.batch_size = batch_size
+        print(data_source.fields)
+        assert 0
         self.num_crops = data_source.get_num_crops()
         self.num_patches_per_group = num_patches_per_group
         self.total_num_crops = data_source.get_total_num_crops()

@@ -65,12 +65,6 @@ class BaseTrainer(ABC):
         self.epoch = 1
         self.iteration = 0
         self.num_epochs = kwargs["num_epochs"]
-        if mode == "pre_training":
-            self.batch_size = kwargs["pretrain_batch_size"]
-        elif mode == "redshift_train":
-            assert 0
-
-        self.exp_name = kwargs["exp_name"]
 
         # In-training variables
         self.log_dict = {}
@@ -89,13 +83,7 @@ class BaseTrainer(ABC):
             sum(p.numel() for p in self.pipeline.parameters()))
         )
 
-        self.dataset = dataset
-        self.init_dataloader()
-        self.init_optimizer(optim_cls, **optim_params)
-
-        self.log_fname = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}'
-        self.log_dir = join(kwargs["data_path"], "output", self.exp_name, self.log_fname)
-        Path(self.log_dir).mkdir(parents=True, exist_ok=True)
+        self.set_log_path()
 
         # Backup configs for debug
         if self.mode[:5] == 'train':
@@ -103,9 +91,28 @@ class BaseTrainer(ABC):
             dst = join(self.log_dir, "config.yaml")
             shutil.copyfile(kwargs["config"], dst)
 
+        self.init_optimizer(optim_cls, **optim_params)
+
     ################
     # Initialization
     ################
+
+    def set_log_path(self):
+        self.exp_name = self.kwargs["exp_name"]
+        self.log_fname = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}'
+        self.log_dir = join(self.kwargs["data_path"], "output", self.exp_name, self.log_fname)
+        Path(self.log_dir).mkdir(parents=True, exist_ok=True)
+        if self.verbose: log.info(f"logging to {self.log_dir}")
+
+        for cur_path, cur_pname, in zip(["model_dir"],["models"]):
+            path = join(self.log_dir, cur_pname)
+            setattr(self, cur_path, path)
+            Path(path).mkdir(parents=True, exist_ok=True)
+
+        self.grad_fname = join(self.log_dir, "grad.png")
+
+        if self.kwargs["resume_train"]:
+            self.pretrained_model_fname = get_pretrained_model_fname(self.kwargs)
 
     def init_dataloader(self):
         if self.kwargs["shuffle_dataloader"]: sampler_cls = RandomSampler

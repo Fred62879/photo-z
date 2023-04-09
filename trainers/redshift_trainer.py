@@ -7,26 +7,74 @@ import torch.nn.functional as F
 
 from pathlib import Path
 from os.path import join
-from trainers import BaseTrainer
-from trainers.train_utils import *
 from torch.utils.data import DataLoader
-from dataset.samplers import PatchWiseSampler
 
 import warnings
 warnings.filterwarnings("ignore")
 
+from trainers import BaseTrainer
+from trainers.train_utils import *
+from dataset.samplers import PatchWiseSampler
+from utils.common import get_pretrained_model_fname
+
 
 class RedshiftTrainer(BaseTrainer):
     def __init__(self, model, dataset, optim_cls, optim_params, mode, **kwargs):
-
         super().__init__(model, dataset, optim_cls, optim_params, mode, **kwargs)
-        # log.info(f"{self.pipeline}, {next(self.pipeline.parameters()).device}")
+        log.info(f"{self.pipeline}, {next(self.pipeline.parameters()).device}")
 
+        self.set_log_path()
         self.mode == mode
-        self.init_loss()
+        self.init_dataset(dataset)
         self.init_dataloader()
+        self.init_loss()
+
+    def init_dataset(self, dataset):
         if self.mode == "pre_training":
             self.init_scheduler()
+            self.train_dataset = dataset
+            self.batch_size = self.kwargs["pretrain_batch_size"]
+
+        elif self.mode == "redshift_train" or self.mode == "validate":
+            self.train_dataset, self.valid_dataset = dataset
+            self.batch_size = self.kwargs["pretrain_batch_size"]
+            print(self.train_dataset)
+
+        elif self.mode == "test":
+            self.test_dataset = dataset
+
+        else: raise ValueError("Unsupported trainer mode.")
+
+    def init_dataloader(self):
+        if self.mode == "pre_training" or self.mode == "redshift_train":
+
+            sampler = PatchWiseSampler(
+                self.train_dataset,
+                self.kwargs["pretrain_batch_size"],
+                self.kwargs["num_patches_per_group"])
+            # for i in sampler: print(i)
+
+            self.train_data_loader = DataLoader(
+                self.train_dataset,
+                sampler=sampler,
+                batch_size=None,
+                pin_memory=True,
+                num_workers=self.kwargs["dataloader_num_workers"]
+            )
+
+            # if kwargs["dataloader_drop_last"]:
+            #     self.num_batches = len(self.dataset) // self.batch_size
+            # else: self.num_batches = int(np.ceil(len(self.dataset) / self.batch_size))
+            # self.num_batches = len(self.dataset) // self.batch_size
+            # print(len(self.dataset), self.batch_size)
+
+            self.iterations_per_epoch = int(np.ceil(
+                len(self.train_data_loader) / self.batch_size))
+
+        elif self.mode == "test":
+            pass
+
+        else: raise ValueError("Unsupported trainer mode.")
 
     def init_loss(self):
         if self.mode == "pre_training":
@@ -39,8 +87,8 @@ class RedshiftTrainer(BaseTrainer):
                 self.kwargs["num_epochs"],
             ).to(self.device)
 
-        elif self.mode == "redshift_est":
-            pass
+        elif self.mode == "redshift_train":
+            self.redshift_loss = nn.CrossEntropyLoss().to(self.device)
 
     def init_scheduler(self):
         self.lr_schedule = cosine_scheduler(
@@ -57,58 +105,6 @@ class RedshiftTrainer(BaseTrainer):
         # momentum parameter is increased to 1. during training with a cosine schedule
         self.momentum_schedule = cosine_scheduler(
             self.kwargs["momentum_teacher"], 1, self.num_epochs, len(self.train_data_loader))
-
-    def init_dataloader(self):
-        if self.mode == "pre_training":
-
-            sampler = PatchWiseSampler(
-                self.dataset,
-                self.kwargs["pretrain_batch_size"],
-                self.kwargs["num_patches_per_group"])
-            # for i in sampler: print(i)
-
-            self.train_data_loader = DataLoader(
-                self.dataset,
-                sampler=sampler,
-                batch_size=None,
-                pin_memory=True,
-                num_workers=self.kwargs["dataloader_num_workers"]
-            )
-
-            # if kwargs["dataloader_drop_last"]:
-            #     self.num_batches = len(self.dataset) // self.batch_size
-            # else: self.num_batches = int(np.ceil(len(self.dataset) / self.batch_size))
-            # self.num_batches = len(self.dataset) // self.batch_size
-            # print(len(self.dataset), self.batch_size)
-
-            self.iterations_per_epoch = int(np.ceil(
-                len(self.train_data_loader) / self.batch_size))
-
-        elif self.mode == "redshift_training":
-            if self.kwargs["shuffle_dataloader"]: sampler_cls = RandomSampler
-            else: sampler_cls = SequentialSampler
-
-            self.train_data_loader = DataLoader(
-                self.dataset[0],
-                batch_size=self.batch_size,
-                drop_last=self.kwargs["dataloader_drop_last"],
-                pin_memory=True,
-                num_workers=self.kwargs["dataloader_num_workers"]
-            )
-
-            self.iterations_per_epoch = len(self.train_data_loader)
-
-            self.valid_data_loader = DataLoader(
-                self.dataset[1],
-                batch_size=self.batch_size,
-                drop_last=self.kwargs["dataloader_drop_last"],
-                pin_memory=True,
-                num_workers=self.kwargs["dataloader_num_workers"]
-            )
-
-            self.iterations_per_epoch = len(self.train_data_loader)
-
-        # else
 
 
     ################
@@ -158,28 +154,8 @@ class RedshiftTrainer(BaseTrainer):
         if self.mode == "pre_training":
             self.step_pre_training(data)
         elif self.mode == "redshift_est":
-            self.step_redshift_est(data)
-
-    # def step_pre_training(self, data):
-    #     self.optimizer.zero_grad()
-    #     self.add_to_device(data)
-
-    #     self.update_momentum(self.model.student_backbone,
-    #                          self.model.teacher_backbone, m=self.momentum_val)
-    #     self.update_momentum(self.model.student_head,
-    #                          self.model.teacher_head, m=self.momentum_val)
-
-    #     views = [view.to(self.device) for view in data["views"]]
-    #     global_views = views[:2]
-    #     teacher_out = [self.model.forward_teacher(view) for view in global_views]
-    #     student_out = [self.model.forward(view) for view in views]
-    #     loss = self.dino_loss(teacher_out, student_out, epoch=self.epoch)
-    #     self.log_dict["total_loss"] += loss.item()
-
-    #     loss.backward()
-    #     # only cancel gradients of student head.
-    #     model.student_head.cancel_last_layer_gradients(current_epoch=self.epoch)
-    #     self.optimizer.step()
+            self.step_redshift_train(data)
+        else: raise ValueError("Unsupported trainer mode.")
 
     def step_pre_training(self, data):
         for i, param_group in enumerate(self.optimizer.param_groups):
@@ -198,11 +174,14 @@ class RedshiftTrainer(BaseTrainer):
         self.optimizer.step()
         self.pipeline.update_teacher(self.total_iterations, self.momentum_schedule)
 
-    def step_redshift_est(self, data):
-        pass
+    def step_redshift_train(self, data):
+        self.optimizer.zero_grad()
+        self.add_to_device()
 
-    def step_redshift_est(self, data):
-        pass
+        logits = self.pipeline(data["crops"])
+        loss = self.redshift_loss(logits, data["spec_z"])
+        loss.backward()
+        self.optimizer.step()
 
     ############
     # Validation
