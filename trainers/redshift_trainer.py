@@ -23,11 +23,14 @@ class RedshiftTrainer(BaseTrainer):
         super().__init__(model, dataset, optim_cls, optim_params, mode, **kwargs)
         log.info(f"{self.pipeline}, {next(self.pipeline.parameters()).device}")
 
-        self.set_log_path()
         self.mode == mode
         self.init_dataset(dataset)
         self.init_dataloader()
         self.init_loss()
+
+    def set_log_path(self):
+        super().set_log_path()
+        self.best_model_fname = join(self.model_dir, "best_model.pth")
 
     def init_dataset(self, dataset):
         if self.mode == "pre_training":
@@ -62,12 +65,6 @@ class RedshiftTrainer(BaseTrainer):
                 pin_memory=True,
                 num_workers=self.kwargs["dataloader_num_workers"]
             )
-
-            # if kwargs["dataloader_drop_last"]:
-            #     self.num_batches = len(self.dataset) // self.batch_size
-            # else: self.num_batches = int(np.ceil(len(self.dataset) / self.batch_size))
-            # self.num_batches = len(self.dataset) // self.batch_size
-            # print(len(self.dataset), self.batch_size)
 
             self.iterations_per_epoch = int(np.ceil(
                 len(self.train_data_loader) / self.batch_size))
@@ -107,21 +104,13 @@ class RedshiftTrainer(BaseTrainer):
         self.momentum_schedule = cosine_scheduler(
             self.kwargs["momentum_teacher"], 1, self.num_epochs, len(self.train_data_loader))
 
-
     ################
     # Train events
     ################
 
     def pre_training(self):
         super().pre_training()
-
-        # create dir to save checkpoint and others
-        for cur_path, cur_pname, in zip(
-                ["model_dir","output_dir"], ["models","outputs"]
-        ):
-            path = join(self.log_dir, cur_pname)
-            setattr(self, cur_path, path)
-            Path(path).mkdir(parents=True, exist_ok=True)
+        self.best_valid_acc = 0
 
     ################
     # Train one epoch
@@ -189,39 +178,63 @@ class RedshiftTrainer(BaseTrainer):
     # Validation
     ############
 
-    def validate(self):
-        if self.mode == "train":
-            self.validate_during_train()
-        elif self.mode == "validate":
-            self.validate_after_train()
+    @torch.no_grad()
+    def validate(self, dataloader, mode="valid"):
+        """ Estimating the performance of model on the given dataset.
+            @Param
+              mode: valid (during training, we validate every certain epochs
+                           with current model on valid dataset)
+                    test  (after training is done, we valida with best model
+                           on test dataset)
+        """
+        if mode == "test":
+            self.load_model(self.best_model_fname)
+        self.model.eval()
+
+        accs = []
+        num_samples = 0
+        for data in dataloader:
+            self.add_to_device(data)
+
+            output = self.model(data["crops"])
+            _, preds = outputs.max(1)
+            acc1 = preds.eq(data["specz_bin"]).sum().float()/specz_bin.shape[0]
+            acc = self.model.get_acc(pred, data)
+
+            bsz = len(data["pc"])
+            accs += [acc * bsz]
+            num_samples += bsz
+
+        avg_acc = torch.stack(accs).sum() / num_samples
+
+        if self.mode == "valid":
+            if avg_acc > self.best_valid_acc:
+                self.best_valid_acc = avg_acc
+                self.save_model(self.best_model_fname)
+
+            self.model.train() # switch model back to training mode
+
+        log_text = "epoch {}/{}".format(self.epoch, self.num_epochs)
+        log_text += " | validation accuracy: {:>.3E}".format(avg_acc)
+        log.info(log_text)
+        return avg_acc
 
     ############
     # Logging
     ############
-
-    def save_model(self):
-        fname = f"model-ep{self.epoch}-it{self.iteration}.pth"
-        model_fname = join(self.model_dir, fname)
-
-        if self.verbose: log.info(f"saving model checkpoint to: {model_fname}")
-
-        checkpoint = {
-            "epoch_trained": self.epoch,
-            "model_state_dict": self.pipeline.state_dict(),
-            "optimizer_state_dict": self.optimizer.state_dict()
-        }
-
-        if self.mode == "pre_training":
-            checkpoint["dino_loss"] = self.dino_loss.state_dict()
-
-        torch.save(checkpoint, model_fname)
-        return checkpoint
 
     def log_cli(self):
         # Average over iterations
         log_text = 'epoch {}/{}'.format(self.epoch, self.num_epochs)
         log_text += ' | total loss: {:>.3E}'.format(self.log_dict['total_loss'] / len(self.train_data_loader))
         log.info(log_text)
+
+    ############
+    # Setters
+    ############
+
+    def set_mode(self, mode):
+        self.mode = mode
 
     ############
     # Helpers
@@ -241,9 +254,26 @@ class RedshiftTrainer(BaseTrainer):
         else:
             assert 0
 
-    ############
-    # Setters
-    ############
+    def save_model(self, model_fname=None):
+        if fname is None:
+            fname = f"model-ep{self.epoch}-it{self.iteration}.pth"
+            model_fname = join(self.model_dir, fname)
 
-    def set_mode(self, mode):
-        self.mode = mode
+        if self.verbose: log.info(f"saving model checkpoint to: {model_fname}")
+
+        checkpoint = {
+            "epoch_trained": self.epoch,
+            "model_state_dict": self.pipeline.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict()
+        }
+
+        if self.mode == "pre_training":
+            checkpoint["dino_loss"] = self.dino_loss.state_dict()
+
+        torch.save(checkpoint, model_fname)
+        return checkpoint
+
+    def load_model(self, model_fname):
+        checkpoint = torch.load(model_fname)
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])

@@ -27,4 +27,4 @@ if __name__ == "__main__":
     elif kwargs["trainer_mode"] == "test":
         trainer = get_redshift_trainer(
             model, dataset[2], optim_cls, optim_params, "redshift_est", **kwargs)
-        trainer.test()
+        trainer.validate(mode="test")
