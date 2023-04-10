@@ -47,44 +47,47 @@ def define_cmd_line_args():
     net_group = parser.add_argument_group("net")
 
     net_group.add_argument('--arch', default='vit_small', type=str,
-                        choices=['vit_tiny', 'vit_small', 'vit_base', 'xcit',
-                                 'deit_tiny', 'deit_small'] + \
-                        torchvision_archs + torch.hub.list("facebookresearch/xcit:main"),
-                        help="""Name of architecture to train. For quick experiments with \
-                        ViTs, we recommend using vit_tiny or vit_small.""")
+                           choices=['vit_tiny', 'vit_small', 'vit_base', 'xcit',
+                                    'deit_tiny', 'deit_small'] + \
+                           torchvision_archs + torch.hub.list("facebookresearch/xcit:main"),
+                           help="""Name of architecture to train. For quick experiments with \
+                           ViTs, we recommend using vit_tiny or vit_small.""")
+
     net_group.add_argument('--in-chans', default=3, type=int)
     net_group.add_argument('--patch_size', default=16, type=int,
-                        help="""Size in pixels of input square patches - default 16 \
-                        (for 16x16 patches). Using smaller values leads to better \
-                        performance but requires more memory. Applies only for ViTs \
-                        (vit_tiny, vit_small and vit_base). If <16, we recommend disabling \
-                        mixed precision training (--use_fp16 false) to avoid unstabilities.""")
+                           help="""Size in pixels of input square patches - default 16 \
+                           (for 16x16 patches). Using smaller values leads to better \
+                           performance but requires more memory. Applies only for ViTs \
+                           (vit_tiny, vit_small and vit_base). If <16, we recommend disabling \
+                           mixed precision training (--use_fp16 false) to avoid unstabilities.""")
     net_group.add_argument('--out_dim', default=65536, type=int,
-                        help="""Dimensionality of the DINO head output. For complex and \
-                        large datasets large values (like 65k) work well.""")
+                           help="""Dimensionality of the DINO head output. For complex and \
+                           large datasets large values (like 65k) work well.""")
+    net_group.add_argument('--num-specz-bins', default=180, type=int,
+                           help="Number of classification bins for redshift estimation.")
     net_group.add_argument('--norm_last_layer', default=True, type=bool_flag,
-                        help="""Whether or not to weight normalize the last layer of \
-                        the DINO head. Not normalizing leads to better performance but \
-                        can make the training unstable. In our experiments, we typically \
-                        set this paramater to False with vit_small and True with vit_base.""")
+                           help="""Whether or not to weight normalize the last layer of \
+                           the DINO head. Not normalizing leads to better performance but \
+                           can make the training unstable. In our experiments, we typically \
+                           set this paramater to False with vit_small and True with vit_base.""")
     net_group.add_argument('--use_bn_in_head', default=False, type=bool_flag,
-                        help="Whether to use batch normalizations in \
-                        projection head (Default: False)")
+                           help="Whether to use batch normalizations in \
+                           projection head (Default: False)")
 
     net_group.add_argument('--momentum_teacher', default=0.996, type=float,
-                        help="""Base EMA parameter for teacher update. The value is \
-                        increased to 1 during training with cosine schedule. We \
-                        recommend setting a higher value with small batches: for \
-                        example use 0.9995 with batch size of 256.""")
+                           help="""Base EMA parameter for teacher update. The value is \
+                           increased to 1 during training with cosine schedule. We \
+                           recommend setting a higher value with small batches: for \
+                           example use 0.9995 with batch size of 256.""")
     net_group.add_argument('--warmup_teacher_temp', default=0.04, type=float,
-                        help="""Initial value for the teacher temperature: 0.04 works \
-                        well in most cases. Try decreasing it if the training loss \
-                        does not decrease.""")
+                           help="""Initial value for the teacher temperature: 0.04 works \
+                           well in most cases. Try decreasing it if the training loss \
+                           does not decrease.""")
     net_group.add_argument('--teacher_temp', default=0.04, type=float,
-                        help="""Final value (after linear warmup) of the teacher temperature. \
-                        For most experiments, anything above 0.07 is unstable. We recommend\
-                        starting with the default value of 0.04 and increase this slightly \
-                        if needed.""")
+                           help="""Final value (after linear warmup) of the teacher temperature\
+                           For most experiments, anything above 0.07 is unstable. We recommend\
+                           starting with the default value of 0.04 and increase this slightly \
+                           if needed.""")
     net_group.add_argument('--warmup_teacher_temp_epochs', default=0, type=int,
                            help='Number of warmup epochs for the teacher temperature \
                            (Default: 30).')
@@ -224,6 +227,8 @@ def define_cmd_line_args():
                             help="""Scale range of the cropped image before resizing, \
                             relatively to the origin image. Used for small local view \
                             cropping of multi-crop.""")
+
+    data_group.add_argument('--specz-upper-lim', type=int)
 
     ###################
     # Arguments for validation

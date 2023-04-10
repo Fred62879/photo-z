@@ -38,12 +38,13 @@ class RedshiftTrainer(BaseTrainer):
         elif self.mode == "redshift_train" or self.mode == "validate":
             self.train_dataset, self.valid_dataset = dataset
             self.batch_size = self.kwargs["pretrain_batch_size"]
-            print(self.train_dataset)
 
         elif self.mode == "test":
             self.test_dataset = dataset
 
         else: raise ValueError("Unsupported trainer mode.")
+
+        print(f"dataset length: {len(self.train_dataset)}")
 
     def init_dataloader(self):
         if self.mode == "pre_training" or self.mode == "redshift_train":
@@ -153,7 +154,7 @@ class RedshiftTrainer(BaseTrainer):
     def step(self, data):
         if self.mode == "pre_training":
             self.step_pre_training(data)
-        elif self.mode == "redshift_est":
+        elif self.mode == "redshift_train":
             self.step_redshift_train(data)
         else: raise ValueError("Unsupported trainer mode.")
 
@@ -176,10 +177,11 @@ class RedshiftTrainer(BaseTrainer):
 
     def step_redshift_train(self, data):
         self.optimizer.zero_grad()
-        self.add_to_device()
+        self.add_to_device(data)
 
         logits = self.pipeline(data["crops"])
-        loss = self.redshift_loss(logits, data["spec_z"])
+        # print(logits.shape, data["specz_bin"])
+        loss = self.redshift_loss(logits, data["specz_bin"])
         loss.backward()
         self.optimizer.step()
 

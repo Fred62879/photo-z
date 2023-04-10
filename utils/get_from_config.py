@@ -60,18 +60,22 @@ def get_redshift_dataset(**kwargs):
     # )
 
     dataset = RedshiftDataset(mode="redshift_train", **kwargs)
-    n = len(dataset)
+    # n = len(dataset)
 
-    train_num = int(kwargs["split_ratio"][0] * n)
-    valid_num = int(kwargs["split_ratio"][1] * n)
-    test_num = n - train_num - valid_num
+    # train_num = int(kwargs["split_ratio"][0] * n)
+    # valid_num = int(kwargs["split_ratio"][1] * n)
+    # test_num = n - train_num - valid_num
 
-    train_dataset, valid_dataset, test_dataset = random_split(
-        dataset,
-        [train_num, valid_num, test_num],
-        generator=torch.Generator().manual_seed(42)
-    )
-    return [train_dataset, valid_dataset, test_dataset]
+    # idx = np.arange(n)
+    # np.random.shuffle(idx)
+
+    # train_dataset, valid_dataset, test_dataset = random_split(
+    #     dataset,
+    #     [train_num, valid_num, test_num],
+    #     generator=torch.Generator().manual_seed(42)
+    # )
+    # return [train_dataset, valid_dataset, test_dataset]
+    return [dataset, None]
 
 def get_imagenet_trainer(model, dataset, optim_cls, optim_params, mode, **kwargs):
     return ImageNetTrainer(model, dataset, optim_cls, optim_params, mode, **kwargs)

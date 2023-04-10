@@ -22,6 +22,8 @@ class RedshiftDataset(Dataset):
         self.kwargs = kwargs
         self.mode = mode
         self.transform = transform
+        self.specz_upper_lim = kwargs["specz_upper_lim"]
+        self.num_specz_bins = kwargs["num_specz_bins"]
 
         self.verbose = kwargs["verbose"]
         if kwargs["use_gpu"]:
@@ -73,6 +75,7 @@ class RedshiftDataset(Dataset):
             with open(self.meta_data_fname, "wb") as fp:
                 pickle.dump(meta, fp)
 
+        print(f"num crops: {self.num_crops}")
         self.total_num_crops = sum(self.num_crops)
 
     def plot_crops(self):
@@ -98,17 +101,6 @@ class RedshiftDataset(Dataset):
         else: raise ValueError("Unsupported trainer mode")
 
     def __getitem__(self, idx: list):
-        print(idx)
-
-        if self.mode == "pre_training":
-            return self._pre_training_getitem(idx)
-
-        return {
-            "crops": self.crops[index],
-            "redshift": self.redshifts[index]
-        }
-
-    def _pre_training_getitem(self, idx):
         if idx[0] == -1:
             idx = self.switch_patch(idx)
             #print(self.cur_crops.shape, self.cur_specz.shape, self.cur_specz_isnull.shape)
@@ -117,7 +109,19 @@ class RedshiftDataset(Dataset):
         crops = self.cur_crops[idx]
         if self.transform is not None:
             crops = self.transform(crops)
-        return {"crops": crops}
+
+        if self.mode == "pre_training":
+            return {"crops": crops}
+
+        specz = self.cur_specz[idx]
+        specz_bin = torch.ByteTensor(
+            specz // (self.specz_upper_lim / self.kwargs["num_specz_bins"])
+        )
+        # print(specz_bin, specz_bin.dtype)
+        return {
+            "crops": crops,
+            "specz_bin": specz_bin
+        }
 
     #############
     # Getters
@@ -150,12 +154,14 @@ class RedshiftDataset(Dataset):
         for patch_id in patch_ids:
             out_fname_prefix = join(self.ssl_redshift_data_path, self.fits_fnames[patch_id][:-5])
             crops.append(np.load(f"{out_fname_prefix}_crops.npy"))
-            specz.append(np.load(f"{out_fname_prefix}_specz.npy"))
-            specz_isnull.append(np.load(f"{out_fname_prefix}_specz_isnull.npy"))
+            if self.mode == "redshift_train":
+                specz.append(np.load(f"{out_fname_prefix}_specz.npy"))
+            # specz_isnull.append(np.load(f"{out_fname_prefix}_specz_isnull.npy"))
 
         self.cur_crops = np.concatenate(crops, axis=0)
-        self.cur_specz = np.concatenate(specz, axis=0)
-        self.cur_specz_isnull = np.concatenate(specz_isnull, axis=0)
+        if self.mode == "redshift_train":
+            self.cur_specz = np.concatenate(specz, axis=0)
+            # self.cur_specz_isnull = np.concatenate(specz_isnull, axis=0)
 
         return idx[num_patches + 2:]
 

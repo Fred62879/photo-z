@@ -20,13 +20,12 @@ class PatchWiseSampler(Sampler):
               is always the first entry.
 
               Since we rely fully on this sampler for data batching, we need to set
-              the batch size of the dataloader to be 1.
-              As a result __len__ returns the number of batches
+              the batch size of the dataloader to be None.
+              #As a result __len__ returns the number of batches instead of the number
+              #of crop samples.
     """
     def __init__(self, data_source, batch_size, num_patches_per_group):
         self.batch_size = batch_size
-        print(data_source.fields)
-        assert 0
         self.num_crops = data_source.get_num_crops()
         self.num_patches_per_group = num_patches_per_group
         self.total_num_crops = data_source.get_total_num_crops()

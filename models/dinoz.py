@@ -33,7 +33,7 @@ class DINOz(nn.Module):
         embed_dim = vit.embed_dim
         self.model = MultiCropWrapper(vit, DINOHead(
             embed_dim,
-            self.kwargs["out_dim"],
+            self.kwargs["num_specz_bins"],
             use_bn=self.kwargs["use_bn_in_head"],
             # norm_last_layer=self.kwargs["norm_last_layer"])
         ))

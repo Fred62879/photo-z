@@ -15,6 +15,7 @@ network:
     arch: vit_tiny
     patch_size: 16
     out_dim: 65536
+    num_specz_bins: 180
     norm_last_layer: True
     use_bn_in_head: False
     in_chans: 5
@@ -83,3 +84,5 @@ dataset:
 
     dist_url: env://
     seed: 0
+
+    specz_upper_lim: 9
