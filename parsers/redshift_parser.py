@@ -182,11 +182,13 @@ def define_cmd_line_args():
 
     data_group.add_argument("--load-data-from-cache", action="store_true")
     data_group.add_argument("--plot-crops", action="store_true")
+    data_group.add_argument("--split-table", action="store_true")
     data_group.add_argument("--num-crops-to-plot", type=int, default=1)
     data_group.add_argument("--shuffle-dataloader", action="store_true")
     data_group.add_argument("--dataloader-drop-last", action="store_true")
     data_group.add_argument("--dataloader-num-workers", type=int, default=0)
     data_group.add_argument("--num-patches-per-group", type=int, default=1)
+    data_group.add_argument('--specz-upper-lim', type=int)
 
     data_group.add_argument("--dino-global-crop-dim", type=int, default=1)
     data_group.add_argument("--dino-local-crop-dim", type=int, default=1)
@@ -197,7 +199,12 @@ def define_cmd_line_args():
     data_group.add_argument("--split-ratio", type=int, nargs="+")
 
     data_group.add_argument("--data-path", type=str, help="Path to the dataset")
-    data_group.add_argument("--redshift-fname", type=str, help="Filename of source redshift.")
+    data_group.add_argument("--redshift-path", type=str, help="Path of source redshift.")
+    data_group.add_argument("--source-table-fname", type=str, help="Path of source redshift.")
+    data_group.add_argument("--train-specz-table-fname", type=str, help="")
+    data_group.add_argument("--valid-specz-table-fname", type=str, help="")
+    data_group.add_argument("--test-specz-table-fname", type=str, help="")
+
     data_group.add_argument("--dataset-num-workers", type=int, default=-1,
                             help="Number of workers for dataset preprocessing, if it \
                             supports multiprocessing. -1 indicates no multiprocessing.")
@@ -205,14 +212,6 @@ def define_cmd_line_args():
     data_group.add_argument("--bands", type=str, nargs="+", help="Band of images.")
     data_group.add_argument("--sensor-collection-name", type=str, help="Choice of band col.")
 
-    data_group.add_argument('--saveckp_freq', default=20, type=int,
-                            help='Save checkpoint every x epochs.')
-    data_group.add_argument('--seed', default=0, type=int, help='Random seed.')
-    data_group.add_argument("--dist_url", default="env://", type=str,
-                            help="""url used to set up distributed training; \
-                            see https://pytorch.org/docs/stable/distributed.html""")
-    data_group.add_argument("--local_rank", default=0, type=int,
-                            help="Please ignore and do not set this argument.")
     data_group.add_argument('--global_crops_scale', type=float, nargs='+', default=(0.4, 1.),
                             help="""Scale range of the cropped image before resizing,
                             relatively to the origin image. Used for large global view cropping.
@@ -228,20 +227,15 @@ def define_cmd_line_args():
                             relatively to the origin image. Used for small local view \
                             cropping of multi-crop.""")
 
-    data_group.add_argument('--specz-upper-lim', type=int)
-
     ###################
     # Arguments for validation
     ###################
     valid_group = parser.add_argument_group("validation")
 
-    valid_group.add_argument("--valid-only", action="store_true",
-                             help="Run validation only (and do not run training).")
     valid_group.add_argument("--valid-every", type=int, default=-1,
                              help="Frequency of running validation.")
-    valid_group.add_argument("--valid-split", type=str, default="val",
-                             help="Split to use for validation.")
-    valid_group.add_argument("--validate_num_batches", type=int, default=10)
+    valid_group.add_argument("--best-model-fname", type=str)
+    valid_group.add_argument("--best-model-log-dir", type=str)
 
 
     # add log level flag

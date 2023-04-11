@@ -8,6 +8,17 @@ from torchvision import transforms
 from PIL import ImageFilter, ImageOps
 
 
+class SpecZBin:
+    def __init__(self, specz_upper_lim, num_specz_bins):
+        self.specz_upper_lim = specz_upper_lim
+        self.num_specz_bins = num_specz_bins
+
+    def __call__(self, specz):
+        specz_bin = torch.ByteTensor(
+            specz // (self.specz_upper_lim / self.num_specz_bins)
+        )
+        return specz_bin
+
 class RandomRotate:
     def __init__(self, mode="wrap"):
         self.mode = mode

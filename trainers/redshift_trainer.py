@@ -21,7 +21,7 @@ from utils.common import get_pretrained_model_fname
 class RedshiftTrainer(BaseTrainer):
     def __init__(self, model, dataset, optim_cls, optim_params, mode, **kwargs):
         super().__init__(model, dataset, optim_cls, optim_params, mode, **kwargs)
-        log.info(f"{self.pipeline}, {next(self.pipeline.parameters()).device}")
+        # log.info(f"{self.pipeline}, {next(self.pipeline.parameters()).device}")
 
         self.mode == mode
         self.init_dataset(dataset)
@@ -30,47 +30,42 @@ class RedshiftTrainer(BaseTrainer):
 
     def set_log_path(self):
         super().set_log_path()
-        self.best_model_fname = join(self.model_dir, "best_model.pth")
+        if self.mode == "redshift_train":
+            self.best_model_fname = join(self.model_dir, self.kwargs["best_model_fname"])
 
     def init_dataset(self, dataset):
         if self.mode == "pre_training":
             self.init_scheduler()
             self.train_dataset = dataset
             self.batch_size = self.kwargs["pretrain_batch_size"]
+            log.info(f"pretrain dataset length: {len(self.train_dataset)}")
 
-        elif self.mode == "redshift_train" or self.mode == "validate":
+        elif self.mode == "redshift_train":
             self.train_dataset, self.valid_dataset = dataset
             self.batch_size = self.kwargs["pretrain_batch_size"]
+            log.info(f"train dataset length: {len(self.train_dataset)}")
+            log.info(f"valid dataset length: {len(self.valid_dataset)}")
 
         elif self.mode == "test":
             self.test_dataset = dataset
+            log.info(f"test dataset length: {len(self.test_dataset)}")
 
         else: raise ValueError("Unsupported trainer mode.")
 
-        print(f"dataset length: {len(self.train_dataset)}")
-
     def init_dataloader(self):
-        if self.mode == "pre_training" or self.mode == "redshift_train":
+        if self.mode == "pre_training":
+            self.train_data_loader = self._init_dataloader(self.train_dataset)
+            self.iterations_per_epoch = int(np.ceil(
+                len(self.train_data_loader) / self.batch_size))
 
-            sampler = PatchWiseSampler(
-                self.train_dataset,
-                self.kwargs["pretrain_batch_size"],
-                self.kwargs["num_patches_per_group"])
-            # for i in sampler: print(i)
-
-            self.train_data_loader = DataLoader(
-                self.train_dataset,
-                sampler=sampler,
-                batch_size=None,
-                pin_memory=True,
-                num_workers=self.kwargs["dataloader_num_workers"]
-            )
-
+        elif self.mode == "redshift_train":
+            self.train_data_loader = self._init_dataloader(self.train_dataset)
+            self.valid_data_loader = self._init_dataloader(self.valid_dataset)
             self.iterations_per_epoch = int(np.ceil(
                 len(self.train_data_loader) / self.batch_size))
 
         elif self.mode == "test":
-            pass
+            self.valid_data_loader = self._init_dataloader(self.test_dataset)
 
         else: raise ValueError("Unsupported trainer mode.")
 
@@ -110,7 +105,8 @@ class RedshiftTrainer(BaseTrainer):
 
     def pre_training(self):
         super().pre_training()
-        self.best_valid_acc = 0
+        if self.mode == "redshift_train":
+            self.best_valid_acc = -1
 
     ################
     # Train one epoch
@@ -134,7 +130,7 @@ class RedshiftTrainer(BaseTrainer):
             self.render_tb()
 
         if self.save_every > -1 and self.epoch % self.save_every == 0:
-            self.save_model()
+            self._save_model()
 
     ############
     # One step
@@ -145,7 +141,7 @@ class RedshiftTrainer(BaseTrainer):
             self.step_pre_training(data)
         elif self.mode == "redshift_train":
             self.step_redshift_train(data)
-        else: raise ValueError("Unsupported trainer mode.")
+        else: raise ValueError("Unsupported trainer mode for stepping.")
 
     def step_pre_training(self, data):
         for i, param_group in enumerate(self.optimizer.param_groups):
@@ -154,10 +150,11 @@ class RedshiftTrainer(BaseTrainer):
                 param_group["weight_decay"] = self.wd_schedule[self.total_iterations]
 
         self.optimizer.zero_grad()
-        self.add_to_device(data["crops"])
+        self._add_to_device(data["crops"])
 
         teacher_output, student_output = self.pipeline(data["crops"])
         loss = self.dino_loss(student_output, teacher_output, self.epoch)
+        self.log_dict["total_loss"] += loss.item()
         loss.backward()
 
         self.pipeline.prepare_grad_update(self.epoch)
@@ -166,11 +163,13 @@ class RedshiftTrainer(BaseTrainer):
 
     def step_redshift_train(self, data):
         self.optimizer.zero_grad()
-        self.add_to_device(data)
+        self._add_to_device(data)
 
         logits = self.pipeline(data["crops"])
         # print(logits.shape, data["specz_bin"])
         loss = self.redshift_loss(logits, data["specz_bin"])
+        self.log_dict["total_loss"] += loss.item()
+
         loss.backward()
         self.optimizer.step()
 
@@ -179,7 +178,7 @@ class RedshiftTrainer(BaseTrainer):
     ############
 
     @torch.no_grad()
-    def validate(self, dataloader, mode="valid"):
+    def validate(self, data_loader=None, mode="valid"):
         """ Estimating the performance of model on the given dataset.
             @Param
               mode: valid (during training, we validate every certain epochs
@@ -187,37 +186,34 @@ class RedshiftTrainer(BaseTrainer):
                     test  (after training is done, we valida with best model
                            on test dataset)
         """
-        if mode == "test":
-            self.load_model(self.best_model_fname)
-        self.model.eval()
+        if data_loader is None:
+            data_loader = self.valid_data_loader
+        self.pipeline.eval()
 
-        accs = []
-        num_samples = 0
-        for data in dataloader:
-            self.add_to_device(data)
+        num_correct, num_samples = 0, 0
+        for data in data_loader:
+            self._add_to_device(data)
 
-            output = self.model(data["crops"])
-            _, preds = outputs.max(1)
-            acc1 = preds.eq(data["specz_bin"]).sum().float()/specz_bin.shape[0]
-            acc = self.model.get_acc(pred, data)
-
-            bsz = len(data["pc"])
-            accs += [acc * bsz]
+            bsz = len(data["crops"])
+            output = self.pipeline(data["crops"]) # [bsz,num_bins]
+            _, preds = output.max(dim=-1)
+            num_correct += preds.eq(data["specz_bin"]).sum()
             num_samples += bsz
 
-        avg_acc = torch.stack(accs).sum() / num_samples
+        avg_acc = num_correct / num_samples
 
-        if self.mode == "valid":
+        if mode == "valid":
             if avg_acc > self.best_valid_acc:
                 self.best_valid_acc = avg_acc
-                self.save_model(self.best_model_fname)
+                self._save_model(self.best_model_fname)
 
-            self.model.train() # switch model back to training mode
+            self.pipeline.train() # switch model back to training mode
 
-        log_text = "epoch {}/{}".format(self.epoch, self.num_epochs)
-        log_text += " | validation accuracy: {:>.3E}".format(avg_acc)
+        log_text = ""
+        if self.mode == "pre_training" or self.mode == "redshift_train":
+            log_text = "epoch {}/{} | ".format(self.epoch, self.num_epochs)
+        log_text += "validation accuracy: {:>.3E}".format(avg_acc)
         log.info(log_text)
-        return avg_acc
 
     ############
     # Logging
@@ -240,7 +236,21 @@ class RedshiftTrainer(BaseTrainer):
     # Helpers
     ############
 
-    def add_to_device(self, data):
+    def _init_dataloader(self, dataset):
+        sampler = PatchWiseSampler(
+            dataset,
+            self.kwargs["pretrain_batch_size"],
+            self.kwargs["num_patches_per_group"])
+        data_loader = DataLoader(
+            dataset,
+            sampler=sampler,
+            batch_size=None,
+            pin_memory=True,
+            num_workers=self.kwargs["dataloader_num_workers"]
+        )
+        return data_loader
+
+    def _add_to_device(self, data):
         # images, specz_bin = map(lambda x: x.to(self.device), data[:2])
 
         if type(data) == torch.Tensor:
@@ -254,8 +264,8 @@ class RedshiftTrainer(BaseTrainer):
         else:
             assert 0
 
-    def save_model(self, model_fname=None):
-        if fname is None:
+    def _save_model(self, model_fname=None):
+        if model_fname is None:
             fname = f"model-ep{self.epoch}-it{self.iteration}.pth"
             model_fname = join(self.model_dir, fname)
 
@@ -273,7 +283,7 @@ class RedshiftTrainer(BaseTrainer):
         torch.save(checkpoint, model_fname)
         return checkpoint
 
-    def load_model(self, model_fname):
+    def _load_model(self, model_fname):
         checkpoint = torch.load(model_fname)
-        self.model.load_state_dict(checkpoint["model_state_dict"])
+        self.pipeline.load_state_dict(checkpoint["model_state_dict"])
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])

@@ -22,13 +22,14 @@ class DINOz(nn.Module):
             # drop_path_rate=self.kwargs["drop_path_rate"],  # stochastic depth
         )
 
-        state = torch.load(fname)["model_state_dict"]
-        # for n,p in vit.named_parameters(): print(n)
-        # for n in state.keys(): print(n)
-
-        load_model_prefixed_state(state, vit, "student.backbone.")
-        for p in vit.parameters():
-            p.requires_grad = False
+        # load pretrained model (backbone only)
+        if self.kwargs["trainer_mode"] == "redshift_train":
+            state = torch.load(fname)["model_state_dict"]
+            # for n,p in vit.named_parameters(): print(n)
+            # for n in state.keys(): print(n)
+            load_model_prefixed_state(state, vit, "student.backbone.")
+            # for p in vit.parameters():
+            #    p.requires_grad = False
 
         embed_dim = vit.embed_dim
         self.model = MultiCropWrapper(vit, DINOHead(
@@ -37,6 +38,13 @@ class DINOz(nn.Module):
             use_bn=self.kwargs["use_bn_in_head"],
             # norm_last_layer=self.kwargs["norm_last_layer"])
         ))
+
+        # load best validated model for testing
+        if self.kwargs["trainer_mode"] == "test":
+            state = torch.load(fname)["model_state_dict"]
+            # for n in state.keys(): print(n)
+            # for n,p in self.model.named_parameters(): print(n)
+            load_model_prefixed_state(state, self.model, "model.")
 
         # if has_batchnorms(self.student):
         #     self.teacher = nn.SyncBatchNorm.convert_sync_batchnorm(self.model)

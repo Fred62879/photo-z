@@ -100,7 +100,7 @@ class BaseTrainer(ABC):
     def set_log_path(self):
         self.exp_name = self.kwargs["exp_name"]
         self.log_fname = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}'
-        self.log_dir = join(self.kwargs["data_path"], "output", self.exp_name, self.log_fname)
+        self.log_dir = join(self.kwargs["log_dir"], self.exp_name, self.log_fname)
         Path(self.log_dir).mkdir(parents=True, exist_ok=True)
         if self.verbose: log.info(f"logging to {self.log_dir}")
 
@@ -185,7 +185,7 @@ class BaseTrainer(ABC):
     def train(self):
         self.pre_training()
 
-        for epoch in range(self.num_epochs):
+        for epoch in range(self.num_epochs + 1):
             self.epoch = epoch
             self.begin_epoch()
 

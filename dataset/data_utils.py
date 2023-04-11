@@ -29,6 +29,10 @@ def process_data(in_fname, out_fname, query_each=25, num_batches=60):
         log.info("only support .xyz or .ply data. Please make adjust your data.")
         exit()
 
+def insert_to_string(str1, str2, i):
+    """ insert str2 at index i of str1 """
+    return str1[:i] + str2 + str1[-i:]
+
 def calculate_zscale_ranges(img):
     """ Calculate zscale ranges based on given pixels for each bands separately.
         @Param

@@ -26,7 +26,7 @@ network:
     warmup_teacher_temp_epochs: 0
 
 trainer:
-    trainer_mode: 'redshift_train'
+    trainer_mode: 'pre_training' #'redshift_train'
     log_dir: '/scratch/projects/vision/data/pdr3/output/'
 
     num_epochs: 10
@@ -48,17 +48,24 @@ trainer:
     resume_train: False
     #resume_log_dir: '20230404-123911_no_spatial_decode'
     #resume_model_name: 'model-ep2000-it0.pth'
-    #pretrained_log_dir:
-    #pretrained_model_fname:
+    pretrained_log_dir: '20230408-175252'
+    pretrained_model_fname: 'model-ep0-it13.pth'
 
-#validate:
-#    validate_num_batches: 10
+validate:
+    #validate_num_batches: 10
+    best_model_fname: "best_model.pth"
+    best_model_log_dir: '20230410-163912'
 
 dataset:
     load_data_from_cache: True
+    dataset_num_workers: 0
+    num_patches_per_group: 3
+    crop_sz: 96
+    split_ratio: [0.7,0.2,0.1]
     plot_crops: True
     num_crops_to_plot: 10
-    dataset_num_workers: 0
+    specz_upper_lim: 9
+    split_table: True
 
     dino_global_crop_dim: 84
     dino_local_crop_dim: 64
@@ -66,14 +73,13 @@ dataset:
     dino_rotate_mode: "wrap"
     dino_jitter_lim: 10
 
-    split_ratio: [0.7,0.2,0.1]
-
-    num_patches_per_group: 3
-
-    # redshift_fname: 'detections_redshifts_pdf3.fits'
-    redshift_fname: 'test_redshift.fits'
     data_path: '/scratch/projects/vision/data/pdr3'
-    crop_sz: 96
+    redshift_path: "redshift/test1"
+
+    source_table_fname: "detections_redshifts_pdf3.fits"
+    train_specz_table_fname: "train_specz.fits"
+    valid_specz_table_fname: "valid_specz.fits"
+    test_specz_table_fname: "test_specz.fits"
 
     sensor_collection_name: '5_grizy'
     bands: ["G","R","I","Z","Y"]
@@ -82,7 +88,5 @@ dataset:
     local_crops_number: 8
     local_crops_scale: [0.05, 0.4]
 
-    dist_url: env://
-    seed: 0
-
-    specz_upper_lim: 9
+    # dist_url: env://
+    # seed: 0
