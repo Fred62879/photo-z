@@ -26,7 +26,7 @@ def define_cmd_line_args():
     """
     parser = argparse.ArgumentParser('DINO', add_help=False)
 
-    torch.hub.set_dir('/scratch/projects/vision/code/dino/cache')
+    torch.hub.set_dir('~/scratch/fred862/code/vision/redshift/cache')
 
     ###################
     # Global arguments
@@ -199,6 +199,7 @@ def define_cmd_line_args():
     data_group.add_argument("--split-ratio", type=int, nargs="+")
 
     data_group.add_argument("--data-path", type=str, help="Path to the dataset")
+    data_group.add_argument("--input-fits-path", type=str, help="Path of input fits file.")
     data_group.add_argument("--redshift-path", type=str, help="Path of source redshift.")
     data_group.add_argument("--source-table-fname", type=str, help="Path of source redshift.")
     data_group.add_argument("--train-specz-table-fname", type=str, help="")

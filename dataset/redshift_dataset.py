@@ -41,7 +41,8 @@ class RedshiftDataset(Dataset):
         input_path = join(self.kwargs["data_path"], "input")
         redshift_path = join(input_path, self.kwargs["redshift_path"])
 
-        self.source_fits_path = join(input_path, "input_fits")
+        # self.source_fits_path = join(input_path, "input_fits")
+        self.source_fits_path = self.kwargs["input_fits_path"]
         self.ssl_redshift_data_path = join(redshift_path, "ssl_redshift", path)
         Path(self.ssl_redshift_data_path).mkdir(parents=True, exist_ok=True)
 

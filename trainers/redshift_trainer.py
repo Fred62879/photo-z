@@ -27,6 +27,8 @@ class RedshiftTrainer(BaseTrainer):
         self.init_dataset(dataset)
         self.init_dataloader()
         self.init_loss()
+        if self.mode == "pre_training":
+            self.init_scheduler()
 
     def set_log_path(self):
         super().set_log_path()
@@ -35,7 +37,6 @@ class RedshiftTrainer(BaseTrainer):
 
     def init_dataset(self, dataset):
         if self.mode == "pre_training":
-            self.init_scheduler()
             self.train_dataset = dataset
             self.batch_size = self.kwargs["pretrain_batch_size"]
             log.info(f"pretrain dataset length: {len(self.train_dataset)}")
