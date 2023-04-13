@@ -27,6 +27,8 @@ class RedshiftTrainer(BaseTrainer):
         self.init_dataset(dataset)
         self.init_dataloader()
         self.init_loss()
+        if self.mode == "pre_training":
+            self.init_scheduler()
 
     def set_log_path(self):
         super().set_log_path()
@@ -35,7 +37,6 @@ class RedshiftTrainer(BaseTrainer):
 
     def init_dataset(self, dataset):
         if self.mode == "pre_training":
-            self.init_scheduler()
             self.train_dataset = dataset
             self.batch_size = self.kwargs["pretrain_batch_size"]
             log.info(f"pretrain dataset length: {len(self.train_dataset)}")
@@ -68,12 +69,13 @@ class RedshiftTrainer(BaseTrainer):
             self.valid_data_loader = self._init_dataloader(self.test_dataset)
 
         else: raise ValueError("Unsupported trainer mode.")
+        log.info("dataloader inited")
 
     def init_loss(self):
         if self.mode == "pre_training":
             self.dino_loss = DINOLoss(
                 self.kwargs["out_dim"],
-                self.kwargs["local_crops_number"] + 2,  # total number of crops = 2 global crops + local_crops_number
+                self.kwargs["dino_num_local_crops"] + 2,  # total number of crops = 2 global crops + local_crops_number
                 self.kwargs["warmup_teacher_temp"],
                 self.kwargs["teacher_temp"],
                 self.kwargs["warmup_teacher_temp_epochs"],
@@ -173,6 +175,10 @@ class RedshiftTrainer(BaseTrainer):
         loss.backward()
         self.optimizer.step()
 
+    def post_step(self):
+        # log.info("step done")
+        pass
+
     ############
     # Validation
     ############
@@ -241,6 +247,8 @@ class RedshiftTrainer(BaseTrainer):
             dataset,
             self.kwargs["pretrain_batch_size"],
             self.kwargs["num_patches_per_group"])
+        log.info("sampler inited")
+
         data_loader = DataLoader(
             dataset,
             sampler=sampler,

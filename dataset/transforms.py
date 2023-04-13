@@ -3,9 +3,9 @@ import random
 import numpy as np
 import skimage.transform as sk_transform
 
-from PIL import Image
+#from PIL import Image
 from torchvision import transforms
-from PIL import ImageFilter, ImageOps
+#from PIL import ImageFilter, ImageOps
 
 
 class SpecZBin:
@@ -52,6 +52,7 @@ class JitterCrop:
         bsz, nbands, sz, _ = image.shape
         center_x = image.shape[-2]//2
         center_y = image.shape[-1]//2
+        # print('jc', image.shape)
 
         if self.jitter_lim:
             center_x += np.random.randint(-self.jitter_lim, self.jitter_lim+1, bsz)
@@ -62,6 +63,7 @@ class JitterCrop:
 
         center_x = np.array(center_x)
         center_y = np.array(center_y)
+        # print(center_x.shape, center_y.shape)
 
         x_indices = np.vstack(np.arange(start, end) for start, end in zip(
             center_x-self.offset, center_x+self.offset
@@ -124,7 +126,7 @@ class RedshiftDINOTransform(object):
         self.local_crops_number = kwargs["dino_num_local_crops"]
         self.local_transform = transforms.Compose([
             JitterCrop(kwargs["dino_local_crop_dim"], kwargs["dino_jitter_lim"]),
-            RandomRotate(kwargs["dino_rotate_mode"]),
+            #RandomRotate(kwargs["dino_rotate_mode"]),
             #GaussianBlur(p=0.5),
             #transforms.ToTensor(),
         ])
