@@ -185,6 +185,7 @@ class BaseTrainer(ABC):
     def train(self):
         self.pre_training()
 
+        log.info(f"train {self.num_epochs} epochs, {self.iterations_per_epoch} batch per epoch")
         for epoch in range(self.num_epochs + 1):
             self.epoch = epoch
             self.begin_epoch()

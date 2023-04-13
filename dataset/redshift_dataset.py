@@ -1,5 +1,6 @@
 
 import os
+import time
 import torch
 import pickle
 import numpy as np
@@ -62,6 +63,7 @@ class RedshiftDataset(Dataset):
         self.data = defaultdict(lambda x: None)
 
         if self.load_data_from_cache and exists(self.meta_data_fname):
+            log.info("loading data from cache")
             with open(self.meta_data_fname, "rb") as fp:
                 (self.num_crops, self.tracts, self.patches, self.fits_fnames) = pickle.load(fp)
         else:
@@ -101,8 +103,12 @@ class RedshiftDataset(Dataset):
             idx = self.switch_patch(idx)
 
         crops = self.cur_crops[idx]
+        start = time.time()
         if self.transform is not None:
             crops = self.transform(crops)
+
+        elapsed = time.time() - start
+        # log.info(f"data transform takes {elapsed}s")
 
         if self.mode == "pre_training":
             return {"crops": crops}

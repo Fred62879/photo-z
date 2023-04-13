@@ -31,7 +31,7 @@ trainer:
 
     num_epochs: 10
     warmup_epochs: 5
-    pretrain_batch_size: 3
+    pretrain_batch_size: 500 # transform takes 0.6s
     batch_size_per_gpu: 64
 
     save_every: 2
@@ -59,22 +59,22 @@ validate:
 dataset:
     load_data_from_cache: True
     dataset_num_workers: 0
-    num_patches_per_group: 3
+    num_patches_per_group: 2
     crop_sz: 96
     split_ratio: [0.7,0.2,0.1]
-    plot_crops: True
+    plot_crops: False
     num_crops_to_plot: 10
     specz_upper_lim: 9
     split_table: True
 
     dino_global_crop_dim: 84
     dino_local_crop_dim: 64
-    dino_num_local_crops: 8
+    dino_num_local_crops: 4
     dino_rotate_mode: "wrap"
     dino_jitter_lim: 10
 
     data_path: '/scratch/projects/vision/data/pdr3'
-    redshift_path: "redshift/test1"
+    redshift_path: "redshift/test2"
 
     source_table_fname: "detections_redshifts_pdf3.fits"
     train_specz_table_fname: "train_specz.fits"
