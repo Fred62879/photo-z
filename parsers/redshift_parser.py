@@ -36,6 +36,7 @@ def define_cmd_line_args():
     global_group.add_argument("--config", type=str, help="Path to config file to replace defaults.")
 
     global_group.add_argument("--use_gpu", action="store_true", default=True)
+    global_group.add_argument("--log_time", action="store_true", default=True)
     global_group.add_argument("--verbose", action="store_true")
     global_group.add_argument("--print-shape", action="store_true")
     global_group.add_argument("--exp-name", type=str, default="image_net",

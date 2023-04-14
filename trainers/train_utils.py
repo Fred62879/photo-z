@@ -49,6 +49,7 @@ class DINOLoss(nn.Module):
                         teacher_temp, warmup_teacher_temp_epochs),
             np.ones(nepochs - warmup_teacher_temp_epochs) * teacher_temp
         ))
+        # print(len(self.teacher_temp_schedule))
 
     def forward(self, student_output, teacher_output, epoch):
         """ Cross-entropy between softmax outputs of the teacher and student networks.

@@ -186,7 +186,7 @@ class BaseTrainer(ABC):
         self.pre_training()
 
         log.info(f"train {self.num_epochs} epochs, {self.iterations_per_epoch} batch per epoch")
-        for epoch in range(self.num_epochs + 1):
+        for epoch in range(self.num_epochs):
             self.epoch = epoch
             self.begin_epoch()
 
@@ -224,7 +224,7 @@ class BaseTrainer(ABC):
 
         self.post_epoch()
 
-        if self.valid_every > -1 and self.epoch % self.valid_every == 0 and self.epoch != 0:
+        if not self.mode == "pre_training" and self.valid_every > -1 and self.epoch % self.valid_every == 0 and self.epoch != 0:
             self.validate()
 
     def save_model(self):
@@ -408,7 +408,7 @@ class BaseTrainer(ABC):
     @property
     def epoch(self) -> int:
         """ Epoch counter, starts at 1 and ends at max epochs"""
-        return self.cur_epoch
+        return self.cur_epoch + 1
 
     @epoch.setter
     def epoch(self, epoch: int):
@@ -419,7 +419,7 @@ class BaseTrainer(ABC):
     def iteration(self) -> int:
         """ Iteration counter, for current epoch. Starts at 1 and ends at iterations_per_epoch """
         #return self.scene_state.optimization.iteration
-        return self.cur_iteration
+        return self.cur_iteration + 1
 
     @iteration.setter
     def iteration(self, iteration: int):

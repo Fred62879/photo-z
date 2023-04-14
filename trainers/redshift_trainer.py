@@ -1,4 +1,5 @@
 
+import time
 import torch
 import numpy as np
 import torch.nn as nn
@@ -69,7 +70,6 @@ class RedshiftTrainer(BaseTrainer):
             self.valid_data_loader = self._init_dataloader(self.test_dataset)
 
         else: raise ValueError("Unsupported trainer mode.")
-        log.info("dataloader inited")
 
     def init_loss(self):
         if self.mode == "pre_training":
@@ -125,13 +125,13 @@ class RedshiftTrainer(BaseTrainer):
         if self.log_tb_every > -1 and self.epoch % self.log_tb_every == 0:
             self.log_tb()
 
-        if self.log_cli_every > -1 and self.epoch % self.log_cli_every == 0:
+        if self.log_cli_every > -1 and (self.epoch == 1 or self.epoch % self.log_cli_every == 0):
             self.log_cli()
 
         if self.render_tb_every > -1 and self.epoch % self.render_tb_every == 0:
             self.render_tb()
 
-        if self.save_every > -1 and self.epoch % self.save_every == 0:
+        if self.save_every > -1 and (self.epoch == 1 or self.epoch % self.save_every == 0):
             self._save_model()
 
     ############
@@ -154,10 +154,16 @@ class RedshiftTrainer(BaseTrainer):
         self.optimizer.zero_grad()
         self._add_to_device(data["crops"])
 
+        start = time.time()
+
         teacher_output, student_output = self.pipeline(data["crops"])
-        loss = self.dino_loss(student_output, teacher_output, self.epoch)
+        loss = self.dino_loss(student_output, teacher_output, self.epoch - 1)
         self.log_dict["total_loss"] += loss.item()
         loss.backward()
+
+        if self.kwargs["log_time"]:
+            elapsed = time.time() - start
+            log.info(f"pretraining forward backward pass takes {elapsed}s")
 
         self.pipeline.prepare_grad_update(self.epoch)
         self.optimizer.step()
@@ -247,7 +253,6 @@ class RedshiftTrainer(BaseTrainer):
             dataset,
             self.kwargs["pretrain_batch_size"],
             self.kwargs["num_patches_per_group"])
-        log.info("sampler inited")
 
         data_loader = DataLoader(
             dataset,
