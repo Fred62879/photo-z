@@ -1,4 +1,5 @@
 global:
+    log_time: False
     use_gpu: True
     verbose: True
     print_shape: False
@@ -26,11 +27,11 @@ network:
     warmup_teacher_temp_epochs: 0
 
 trainer:
-    trainer_mode: 'pre_training' #'redshift_train'
+    trainer_mode: 'redshift_train'
     log_dir: '/scratch/projects/vision/data/pdr3/output/'
 
-    num_epochs: 10
-    warmup_epochs: 5
+    num_epochs: 4
+    warmup_epochs: 1
     pretrain_batch_size: 500 # transform takes 0.6s
     batch_size_per_gpu: 64
 
@@ -48,8 +49,8 @@ trainer:
     resume_train: False
     #resume_log_dir: '20230404-123911_no_spatial_decode'
     #resume_model_name: 'model-ep2000-it0.pth'
-    pretrained_log_dir: '20230408-175252'
-    pretrained_model_fname: 'model-ep0-it13.pth'
+    pretrained_log_dir: '20230413-213442'
+    pretrained_model_fname: 'model-ep2-it20.pth'
 
 validate:
     #validate_num_batches: 10
@@ -58,7 +59,7 @@ validate:
 
 dataset:
     load_data_from_cache: True
-    dataset_num_workers: 0
+    dataset_num_workers: 5
     num_patches_per_group: 2
     crop_sz: 96
     split_ratio: [0.7,0.2,0.1]

@@ -106,8 +106,9 @@ class RedshiftDataset(Dataset):
         if self.transform is not None:
             crops = self.transform(crops)
 
-        elapsed = time.time() - start
-        # log.info(f"data transform takes {elapsed}s")
+        if self.kwargs["log_time"]:
+            elapsed = time.time() - start
+            log.info(f"data transform takes {elapsed}s")
 
         if self.mode == "pre_training":
             return {"crops": crops}
