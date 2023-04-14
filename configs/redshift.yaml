@@ -27,7 +27,7 @@ network:
     warmup_teacher_temp_epochs: 0
 
 trainer:
-    trainer_mode: 'redshift_train'
+    trainer_mode: 'pre_training' #'test' #'redshift_train'
     log_dir: '/scratch/projects/vision/data/pdr3/output/'
 
     num_epochs: 4
@@ -49,13 +49,13 @@ trainer:
     resume_train: False
     #resume_log_dir: '20230404-123911_no_spatial_decode'
     #resume_model_name: 'model-ep2000-it0.pth'
-    pretrained_log_dir: '20230413-213442'
+    pretrained_log_dir: '20230413-213442-pre_training'
     pretrained_model_fname: 'model-ep2-it20.pth'
 
 validate:
     #validate_num_batches: 10
     best_model_fname: "best_model.pth"
-    best_model_log_dir: '20230410-163912'
+    best_model_log_dir: '20230414-104714-redshift_train'
 
 dataset:
     load_data_from_cache: True

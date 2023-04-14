@@ -20,7 +20,7 @@ from dataset.data_utils import *
 
 class RedshiftDataset(Dataset):
     def __init__(self, path, table_fname, transform=None, mode="pre_training", **kwargs):
-        log.info(f"Initializing {table_fname[:-5]} ...")
+        log.info(f"Initializing {table_fname[:-5]} dataset.")
         self.kwargs = kwargs
         self.mode = mode
         self.transform = transform
@@ -78,7 +78,7 @@ class RedshiftDataset(Dataset):
             with open(self.meta_data_fname, "wb") as fp:
                 pickle.dump(meta, fp)
 
-        log.info(f"num crops: {self.num_crops}")
+        log.info(f"num crops for each patch: {self.num_crops}")
         self.total_num_crops = sum(self.num_crops)
 
     def plot_crops(self):
