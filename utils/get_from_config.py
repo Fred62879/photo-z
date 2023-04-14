@@ -1,5 +1,6 @@
 
 import torch
+import logging as log
 
 from astropy.table import Table
 from os.path import exists, join
@@ -29,11 +30,13 @@ def get_optimizer(**kwargs):
 def get_pipeline(**kwargs):
     if kwargs["trainer_mode"] == "pre_training":
         model = DINO(**kwargs)
+
     elif kwargs["trainer_mode"] == "redshift_train":
         pretrained_model_fname = get_pretrained_model_fname(
             kwargs["pretrained_log_dir"], kwargs["pretrained_model_fname"], **kwargs)
-        print(pretrained_model_fname)
+        log.info(f"pretrained model fname: {pretrained_model_fname}")
         model = DINOz(pretrained_model_fname, **kwargs)
+
     elif kwargs["trainer_mode"] == "test":
         best_model_fname = join(
             kwargs["log_dir"], kwargs["exp_name"], kwargs["best_model_log_dir"],
@@ -103,10 +106,11 @@ def split_source_table(**kwargs):
     df = df.loc[df["specz_redshift_isnull"] == False]
 
     n = len(df)
-    # train_num = int(kwargs["split_ratio"][0] * n)
-    # valid_num = int(kwargs["split_ratio"][1] * n)
-    # test_num = n - train_num - valid_num
-    train_num, valid_num, test_num = 4, 2, 2 # for test data only
+    train_num = int(kwargs["split_ratio"][0] * n)
+    valid_num = int(kwargs["split_ratio"][1] * n)
+    test_num = n - train_num - valid_num
+    # train_num, valid_num, test_num = 4, 2, 2 # for test data only
+    log.info(f"redshift train table size: train-{train_num}, valid-{valid_num}, test-{test_num}")
 
     idx = np.arange(n)
     np.random.shuffle(idx)
