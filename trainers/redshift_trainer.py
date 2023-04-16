@@ -182,7 +182,7 @@ class RedshiftTrainer(BaseTrainer):
         self.optimizer.step()
 
     def post_step(self):
-        # log.info("step done")
+        log.info("step done")
         pass
 
     ############

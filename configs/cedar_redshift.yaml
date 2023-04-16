@@ -29,14 +29,14 @@ trainer:
     trainer_mode: 'pre_training' #'redshift_train'
     log_dir: '/home/fred862/scratch/fred862/data/vision/pdr3/output'
 
-    num_epochs: 10
+    num_epochs: 50
     warmup_epochs: 5
-    pretrain_batch_size: 3
-    batch_size_per_gpu: 64
+    pretrain_batch_size: 256
+    batch_size_per_gpu: 256
 
-    save_every: 2
-    valid_every: 2
-    log_cli_every: 2
+    save_every: 5
+    valid_every: 5
+    log_cli_every: 1
 
     clip_grad: 3.0
     use_fp16: True

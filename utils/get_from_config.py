@@ -8,8 +8,8 @@ from os.path import exists, join
 from models import DINO, DINOz
 from dataset.transforms import *
 from utils.common import get_pretrained_model_fname
-from dataset import RedshiftDataset, ImageNetDataset
-from trainers import RedshiftTrainer, ImageNetTrainer
+from dataset import RedshiftDataset #, ImageNetDataset
+from trainers import RedshiftTrainer #, ImageNetTrainer
 
 
 str2optim = {m.lower(): getattr(torch.optim, m) for m in dir(torch.optim) if m[0].isupper()}
@@ -47,16 +47,6 @@ def get_pipeline(**kwargs):
     model.to(device)
     return model
 
-def get_imagenet_dataset(**kwargs):
-    dataset = ImageNetDataset(**kwargs)
-    if kwargs["trainer_mode"] == "pre_training":
-        return [dataset]
-
-    generator = torch.Generator().manual_seed(42)
-    train_dataset, valid_dataset, test_dataset = random_split(
-        dataset, kwargs["split_ratio"], generator=generator)
-    return [train_dataset, valid_dataset, test_dataset]
-
 def get_redshift_dataset(**kwargs):
     if kwargs["trainer_mode"] == "pre_training":
         transform = RedshiftDINOTransform(**kwargs)
@@ -80,11 +70,21 @@ def get_redshift_dataset(**kwargs):
 
     else: raise ValueError("Unsupported trainer mode when initializing dataset.")
 
-def get_imagenet_trainer(model, dataset, optim_cls, optim_params, mode, **kwargs):
-    return ImageNetTrainer(model, dataset, optim_cls, optim_params, mode, **kwargs)
-
 def get_redshift_trainer(model, dataset, optim_cls, optim_params, mode, **kwargs):
     return RedshiftTrainer(model, dataset, optim_cls, optim_params, mode, **kwargs)
+
+# def get_imagenet_dataset(**kwargs):
+#     dataset = ImageNetDataset(**kwargs)
+#     if kwargs["trainer_mode"] == "pre_training":
+#         return [dataset]
+
+#     generator = torch.Generator().manual_seed(42)
+#     train_dataset, valid_dataset, test_dataset = random_split(
+#         dataset, kwargs["split_ratio"], generator=generator)
+#     return [train_dataset, valid_dataset, test_dataset]
+
+# def get_imagenet_trainer(model, dataset, optim_cls, optim_params, mode, **kwargs):
+#     return ImageNetTrainer(model, dataset, optim_cls, optim_params, mode, **kwargs)
 
 def split_source_table(**kwargs):
     """ Split source data (specz is not None) into 3 tables for train, validation, and test.

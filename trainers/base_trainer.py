@@ -7,6 +7,7 @@ import shutil
 import numpy as np
 import logging as log
 
+from tqdm import tqdm
 from pathlib import Path
 from os.path import join
 from datetime import datetime
@@ -190,7 +191,7 @@ class BaseTrainer(ABC):
             self.epoch = epoch
             self.begin_epoch()
 
-            for iteration in range(self.iterations_per_epoch):
+            for iteration in tqdm(range(self.iterations_per_epoch)):
                 self.iteration = iteration
                 self.pre_step()
                 data = self.next_batch()

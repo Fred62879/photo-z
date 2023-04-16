@@ -125,14 +125,14 @@ class RedshiftDINOTransform(object):
         # first global crop
         self.global_transform1 = transforms.Compose([
             JitterCrop(kwargs["dino_global_crop_dim"]),
-            GaussianBlur(1.0),
+            #GaussianBlur(1.0),
             #transforms.ToTensor()
         ])
         # second global crop
         self.global_transform2 = transforms.Compose([
-            SDSSDR12Reddening(deredden=True),
+            #SDSSDR12Reddening(deredden=True),
             JitterCrop(kwargs["dino_global_crop_dim"]),
-            GaussianBlur(1.0)
+            #GaussianBlur(1.0)
             #transforms.ToTensor(),
         ])
         # transformation for the local small crops
