@@ -3,7 +3,7 @@ if __name__ == "__main__":
 
     from parsers.redshift_parser import parse_args
     # from parsers.imagenet_parser import parse_args
-    from utils.get_from_config import get_pipeline, get_redshift_dataset, get_redshift_trainer, get_optimizer, get_imagenet_dataset, get_imagenet_trainer, split_source_table
+    from utils.get_from_config import get_pipeline, get_redshift_dataset, get_redshift_trainer, get_optimizer, split_source_table #, get_imagenet_dataset, get_imagenet_trainer
 
     args, args_str = parse_args()
     kwargs = vars(args)

@@ -87,7 +87,8 @@ class RedshiftTrainer(BaseTrainer):
 
     def init_scheduler(self):
         self.lr_schedule = cosine_scheduler(
-            self.kwargs["lr"] * (self.kwargs["batch_size_per_gpu"] * get_world_size()) / 256., # linear scaling
+            self.kwargs["lr"] * (
+                self.kwargs["batch_size_per_gpu"] * get_world_size()) / 256., # linear scaling
             self.kwargs["min_lr"],
             self.num_epochs, len(self.train_data_loader),
             warmup_epochs=self.kwargs["warmup_epochs"],
@@ -152,7 +153,7 @@ class RedshiftTrainer(BaseTrainer):
                 param_group["weight_decay"] = self.wd_schedule[self.total_iterations]
 
         self.optimizer.zero_grad()
-        self._add_to_device(data["crops"])
+        self._add_to_device(data["crops"], fields=["crops"])
 
         start = time.time()
 
@@ -171,12 +172,16 @@ class RedshiftTrainer(BaseTrainer):
 
     def step_redshift_train(self, data):
         self.optimizer.zero_grad()
-        self._add_to_device(data)
+        self._add_to_device(data, fields=["crops","specz_bin"])
 
         logits = self.pipeline(data["crops"])
         # print(logits.shape, data["specz_bin"])
         loss = self.redshift_loss(logits, data["specz_bin"])
         self.log_dict["total_loss"] += loss.item()
+
+        _, preds = logits.max(dim=-1)
+        num_correct = preds.eq(data["specz_bin"]).sum()
+        self.log_dict["num_correct"] += num_correct
 
         loss.backward()
         self.optimizer.step()
@@ -202,17 +207,31 @@ class RedshiftTrainer(BaseTrainer):
             data_loader = self.valid_data_loader
         self.pipeline.eval()
 
+        photozs, speczs = [], []
         num_correct, num_samples = 0, 0
         for data in data_loader:
-            self._add_to_device(data)
+            self._add_to_device(data, fields=["crops"])
 
             bsz = len(data["crops"])
-            output = self.pipeline(data["crops"]) # [bsz,num_bins]
+            output = self.pipeline(data["crops"]).detach().cpu() # [bsz,num_bins]
+
+            # calculate bin prediction accuracy
             _, preds = output.max(dim=-1)
-            num_correct += preds.eq(data["specz_bin"]).sum()
+            num_correct += (preds == data["specz_bin"]).sum()
             num_samples += bsz
 
+            # calculate estimated redshift
+            photoz = cal_photoz(output.numpy(), self.kwargs["specz_upper_lim"],
+                                self.kwargs["num_specz_bins"])
+            photozs.extend(photoz)
+            speczs.extend(data["specz"].numpy())
+
         avg_acc = num_correct / num_samples
+
+        photozs = np.array(photozs)
+        speczs = np.array(speczs)
+        delzs, madstd, eta = cal_metrics(
+            photozs, speczs, self.kwargs["catastrophic_outlier_thresh"])
 
         if mode == "valid":
             if avg_acc > self.best_valid_acc:
@@ -222,19 +241,28 @@ class RedshiftTrainer(BaseTrainer):
             self.pipeline.train() # switch model back to training mode
 
         log_text = ""
-        if self.mode == "pre_training" or self.mode == "redshift_train":
-            log_text = "epoch {}/{} | ".format(self.epoch, self.num_epochs)
-        log_text += "validation accuracy: {:>.3E}".format(avg_acc)
+        if mode == "valid":
+            log_text += "epoch {}/{}".format(self.epoch, self.num_epochs)
+        log_text += " | acc: {:>.3E}".format(avg_acc)
+        log_text += " | resid: {:>.3E}".format(np.float32(np.mean(delzs)))
+        log_text += " | MAD: {:>.3E}".format(np.float32(madstd))
+        log_text += " | eta: {}".format(100 * eta)
         log.info(log_text)
 
     ############
     # Logging
     ############
 
+    def init_log_dict(self):
+        super().init_log_dict()
+        self.log_dict["num_correct"] = 0.0
+
     def log_cli(self):
-        # Average over iterations
         log_text = 'epoch {}/{}'.format(self.epoch, self.num_epochs)
-        log_text += ' | total loss: {:>.3E}'.format(self.log_dict['total_loss'] / len(self.train_data_loader))
+        log_text += ' | total loss: {:>.3E}'.format(
+            self.log_dict['total_loss'] / len(self.train_data_loader))
+        log_text += ' | accuracy: {:>.3E}'.format(
+            self.log_dict['num_correct'] / len(self.train_data_loader))
         log.info(log_text)
 
     ############
@@ -263,7 +291,7 @@ class RedshiftTrainer(BaseTrainer):
         )
         return data_loader
 
-    def _add_to_device(self, data):
+    def _add_to_device(self, data, fields=[]):
         # images, specz_bin = map(lambda x: x.to(self.device), data[:2])
 
         if type(data) == torch.Tensor:
@@ -273,7 +301,8 @@ class RedshiftTrainer(BaseTrainer):
                 data[i] = data[i].to(self.device)
         elif type(data) == dict:
             for field in data:
-                data[field] = data[field].to(self.device)
+                if field in fields:
+                    data[field] = data[field].to(self.device)
         else:
             assert 0
 

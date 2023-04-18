@@ -27,17 +27,18 @@ network:
     warmup_teacher_temp_epochs: 0
 
 trainer:
-    trainer_mode: 'pre_training' #'test' #'redshift_train'
+    trainer_mode: 'redshift_train'
     log_dir: '/scratch/projects/vision/data/pdr3/output/'
+    gpu_data: ["crops","specz_bin"]
 
-    num_epochs: 4
-    warmup_epochs: 1
+    num_epochs: 2
+    warmup_epochs: 20
     pretrain_batch_size: 500 # transform takes 0.6s
     batch_size_per_gpu: 64
 
-    save_every: 2
-    valid_every: 2
-    log_cli_every: 2
+    save_every: 1
+    valid_every: 1
+    log_cli_every: 1
 
     clip_grad: 3.0
     use_fp16: True
@@ -49,13 +50,14 @@ trainer:
     resume_train: False
     #resume_log_dir: '20230404-123911_no_spatial_decode'
     #resume_model_name: 'model-ep2000-it0.pth'
-    pretrained_log_dir: '20230413-213442-pre_training'
-    pretrained_model_fname: 'model-ep2-it20.pth'
+    pretrained_log_dir: '20230416-180501-pre_training'
+    pretrained_model_fname: 'model-ep100-it129.pth'
 
 validate:
     #validate_num_batches: 10
     best_model_fname: "best_model.pth"
     best_model_log_dir: '20230414-104714-redshift_train'
+    catastrophic_outlier_thresh: 0.05
 
 dataset:
     load_data_from_cache: True
@@ -66,7 +68,7 @@ dataset:
     plot_crops: False
     num_crops_to_plot: 10
     specz_upper_lim: 9
-    split_table: True
+    split_table: False
 
     dino_global_crop_dim: 84
     dino_local_crop_dim: 64
@@ -75,7 +77,7 @@ dataset:
     dino_jitter_lim: 10
 
     data_path: '/scratch/projects/vision/data/pdr3'
-    redshift_path: "redshift/test2"
+    redshift_path: "redshift/test1"
 
     source_table_fname: "detections_redshifts_pdf3.fits"
     train_specz_table_fname: "train_specz.fits"
@@ -88,6 +90,3 @@ dataset:
     global_crops_scale: [0.4, 1.0]
     local_crops_number: 8
     local_crops_scale: [0.05, 0.4]
-
-    # dist_url: env://
-    # seed: 0

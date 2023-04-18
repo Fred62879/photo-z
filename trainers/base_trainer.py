@@ -7,6 +7,7 @@ import shutil
 import numpy as np
 import logging as log
 
+from tqdm import tqdm
 from pathlib import Path
 from os.path import join
 from datetime import datetime
@@ -86,10 +87,9 @@ class BaseTrainer(ABC):
         self.set_log_path()
 
         # Backup configs for debug
-        if self.mode[:5] == 'train':
-            # self.file_backup()
-            dst = join(self.log_dir, "config.yaml")
-            shutil.copyfile(kwargs["config"], dst)
+        # self.file_backup()
+        dst = join(self.log_dir, "config.yaml")
+        shutil.copyfile(kwargs["config"], dst)
 
         self.init_optimizer(optim_cls, **optim_params)
 
@@ -190,6 +190,7 @@ class BaseTrainer(ABC):
             self.epoch = epoch
             self.begin_epoch()
 
+            # for iteration in tqdm(range(self.iterations_per_epoch)):
             for iteration in range(self.iterations_per_epoch):
                 self.iteration = iteration
                 self.pre_step()

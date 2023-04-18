@@ -238,6 +238,7 @@ def define_cmd_line_args():
     valid_group.add_argument("--best-model-fname", type=str)
     valid_group.add_argument("--best-model-log-dir", type=str)
 
+    valid_group.add_argument("--catastrophic-outlier-thresh", type=float)
 
     # add log level flag
     parser.add_argument(

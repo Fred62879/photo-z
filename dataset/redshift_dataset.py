@@ -115,11 +115,12 @@ class RedshiftDataset(Dataset):
 
         specz = self.cur_specz[idx]
         specz_bin = torch.ByteTensor(
-            specz // (self.specz_upper_lim / self.kwargs["num_specz_bins"])
+            specz // (self.specz_upper_lim / self.num_specz_bins)
         )
-        # print(specz_bin, specz_bin.dtype)
+
         return {
             "crops": crops,
+            "specz": specz,
             "specz_bin": specz_bin
         }
 

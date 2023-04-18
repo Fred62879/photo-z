@@ -6,6 +6,38 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
 
+from astropy.stats import mad_std
+
+
+def cal_photoz(probs, specz_upper_lim, num_specz_bins):
+    """ Calculate photometric redshift.
+        @Param
+          probs: prob of each bin [bsz,nbins]
+        @Return
+          photozs: [bsz]
+    """
+    # print(self.kwargs["specz_upper_lim"], self.kwargs["num_specz_bins"])
+
+    bin_width = specz_upper_lim / num_specz_bins
+    span = (bin_width/2) + bin_width * np.arange(0, num_specz_bins)
+    photozs = np.sum((probs * span), axis=1)
+    return photozs
+
+def cal_metrics(photozs, speczs, catastrophic_outlier_thresh):
+    """ Calculate metrics to evaluate estimated photo z.
+        @Param
+          photozs: [bsz]
+          speczs: [bsz]
+        @Return
+          delzs: prediction residual (delta_z)
+          madstd: dispersion/MAD deviation
+          eta: percent of catastrophic outliers (deltz > th)
+    """
+    delzs = (photozs - speczs) / (1 + speczs)
+    madstd = mad_std(delzs)
+    th = 0.05
+    eta = np.sum(abs(delzs) > catastrophic_outlier_thresh) / delzs.shape[0]
+    return delzs, madstd, eta
 
 def is_dist_avail_and_initialized():
     if not dist.is_available():

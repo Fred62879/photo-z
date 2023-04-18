@@ -39,6 +39,8 @@ class DINOz(nn.Module):
             # norm_last_layer=self.kwargs["norm_last_layer"])
         ))
 
+        self.softmax = nn.Softmax()
+
         # load best validated model for testing
         if self.kwargs["trainer_mode"] == "test":
             state = torch.load(fname)["model_state_dict"]
@@ -54,5 +56,6 @@ class DINOz(nn.Module):
 
     def forward(self, images):
         # images BCHW
-        logits = self.model(images) #
-        return logits
+        logits = self.model(images)
+        probs = self.softmax(logits)
+        return probs
