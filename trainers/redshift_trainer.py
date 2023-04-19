@@ -86,9 +86,9 @@ class RedshiftTrainer(BaseTrainer):
             counts = self.train_dataset.get_specz_bin_counts()
             # print(np.sum(counts))
             weight = torch.FloatTensor(1 / (counts + 1e-12))
-            print(counts, weight)
-            # self.redshift_loss = nn.CrossEntropyLoss(weight=weight).to(self.device)
-            self.redshift_loss = nn.CrossEntropyLoss().to(self.device)
+            # print(counts, weight)
+            self.redshift_loss = nn.CrossEntropyLoss(weight=weight).to(self.device)
+            # self.redshift_loss = nn.CrossEntropyLoss().to(self.device)
 
     def init_scheduler(self):
         self.lr_schedule = cosine_scheduler(
@@ -185,8 +185,8 @@ class RedshiftTrainer(BaseTrainer):
         self.log_dict["total_loss"] += loss.item()
 
         mx, preds = probs.max(dim=-1)
-        print('************')
-        print(preds, data["specz_bin"][int(preds[0])])
+        # print('************')
+        # print(preds, data["specz_bin"][int(preds[0])])
         num_correct = preds.eq(data["specz_bin"]).sum()
         self.log_dict["num_correct"] += num_correct
 

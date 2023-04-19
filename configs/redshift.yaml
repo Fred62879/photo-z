@@ -27,17 +27,17 @@ network:
     warmup_teacher_temp_epochs: 0
 
 trainer:
-    trainer_mode: 'redshift_train'
-    log_dir: '/scratch/projects/vision/data/pdr3/output/'
+    trainer_mode: 'redshift_train'  
+    log_dir: './data/pdr3/output' #'/scratch/projects/vision/data/pdr3/output/'
     gpu_data: ["crops","specz_bin"]
 
-    num_epochs: 2000
-    warmup_epochs: 500
+    num_epochs: 100
+    warmup_epochs: 20
     pretrain_batch_size: 500 # transform takes 0.6s
     batch_size_per_gpu: 64
 
-    save_every: 400
-    valid_every: 10
+    save_every: 20
+    valid_every: 20
     log_cli_every: 10
 
     clip_grad: 3.0
@@ -56,7 +56,7 @@ trainer:
 validate:
     #validate_num_batches: 10
     best_model_fname: "best_model.pth"
-    best_model_log_dir: '20230414-104714-redshift_train'
+    best_model_log_dir: '20230419-103925-redshift_train'
     catastrophic_outlier_thresh: 0.05
 
 dataset:
@@ -68,7 +68,7 @@ dataset:
     plot_crops: False
     num_crops_to_plot: 10
     specz_upper_lim: 7 # test1
-    split_table: False
+    split_table: True
 
     dino_global_crop_dim: 84
     dino_local_crop_dim: 64
@@ -76,8 +76,8 @@ dataset:
     dino_rotate_mode: "wrap"
     dino_jitter_lim: 10
 
-    data_path: '/scratch/projects/vision/data/pdr3'
-    redshift_path: "redshift/test1"
+    data_path: './data/pdr3' #'/scratch/projects/vision/data/pdr3'
+    redshift_path: 'redshift' #"redshift/test1"
 
     source_table_fname: "detections_redshifts_pdf3.fits"
     train_specz_table_fname: "train_specz.fits"

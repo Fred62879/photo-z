@@ -1,13 +1,14 @@
 
 import os
 import re
+import numpy as np
 
 from os.path import join
 
 
 def bin_data(data, upper_lim, num_bins):
     bins = np.arange(upper_lim, step=upper_lim / (num_bins + 1))
-    counts, _ = np.histogram(specz, bins=bins)
+    counts, _ = np.histogram(data, bins=bins)
     return counts
 
 def get_pretrained_model_fname(path=None, model_fname=None, **kwargs):

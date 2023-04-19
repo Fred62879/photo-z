@@ -45,6 +45,7 @@ def plot_redshift(specz, photoz, fname):
     import mpl_scatter_density # adds projection='scatter_density'
     from matplotlib.colors import LinearSegmentedColormap
 
+    upper_lim = max(specz)
     # "Viridis-like" colormap with white background
     white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
         (0, '#ffffff'),
@@ -61,10 +62,9 @@ def plot_redshift(specz, photoz, fname):
     density = ax.scatter_density(specz, photoz, cmap=white_viridis)
     fig.colorbar(density, label='Density of Galaxies (A.U.)')
 
-    plt.xlabel('SpecZ')
-    plt.ylabel('PhotoZ')
-    plt.savefig(fname)
-    plt.close()
+    plt.xlabel('SpecZ');plt.ylabel('PhotoZ')
+    # plt.xlim([0,upper_lim]);plt.ylim([0,upper_lim])
+    plt.savefig(fname);plt.close()
 
 def is_dist_avail_and_initialized():
     if not dist.is_available():

@@ -227,7 +227,7 @@ class RedshiftDataset(Dataset):
                     # get current spectroscopic redshifts
                     if True: #not exists(cur_specz_fname):
                         specz = np.array(list(cur_entries["specz_redshift"])).astype(np.float32)
-                        log.info(f"Warning: use {self.specz_upper_lim} as specz upper bound.")
+                        # log.info(f"Warning: use {self.specz_upper_lim} as specz upper bound.")
                         specz[specz >= self.specz_upper_lim] = self.specz_upper_lim - 1e-6
                         np.save(cur_specz_fname, specz)
 
