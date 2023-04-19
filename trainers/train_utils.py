@@ -5,6 +5,7 @@ import logging as log
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
+import matplotlib.pyplot as plt
 
 from astropy.stats import mad_std
 
@@ -38,6 +39,32 @@ def cal_metrics(photozs, speczs, catastrophic_outlier_thresh):
     th = 0.05
     eta = np.sum(abs(delzs) > catastrophic_outlier_thresh) / delzs.shape[0]
     return delzs, madstd, eta
+
+def plot_redshift(specz, photoz, fname):
+
+    import mpl_scatter_density # adds projection='scatter_density'
+    from matplotlib.colors import LinearSegmentedColormap
+
+    # "Viridis-like" colormap with white background
+    white_viridis = LinearSegmentedColormap.from_list('white_viridis', [
+        (0, '#ffffff'),
+        (1e-20, '#440053'),
+        (0.2, '#404388'),
+        (0.4, '#2a788e'),
+        (0.6, '#21a784'),
+        (0.8, '#78d151'),
+        (1, '#fde624'),
+    ], N=256)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection='scatter_density')
+    density = ax.scatter_density(specz, photoz, cmap=white_viridis)
+    fig.colorbar(density, label='Density of Galaxies (A.U.)')
+
+    plt.xlabel('SpecZ')
+    plt.ylabel('PhotoZ')
+    plt.savefig(fname)
+    plt.close()
 
 def is_dist_avail_and_initialized():
     if not dist.is_available():

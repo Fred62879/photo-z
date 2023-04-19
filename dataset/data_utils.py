@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from os.path import exists
 from astropy.visualization import ZScaleInterval
 
+
 def process_data(in_fname, out_fname, query_each=25, num_batches=60):
     """ Sample points from point cloud.
         @Param

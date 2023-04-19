@@ -5,6 +5,11 @@ import re
 from os.path import join
 
 
+def bin_data(data, upper_lim, num_bins):
+    bins = np.arange(upper_lim, step=upper_lim / (num_bins + 1))
+    counts, _ = np.histogram(specz, bins=bins)
+    return counts
+
 def get_pretrained_model_fname(path=None, model_fname=None, **kwargs):
     log_dir = join(kwargs["log_dir"], kwargs["exp_name"])
     if path is not None:

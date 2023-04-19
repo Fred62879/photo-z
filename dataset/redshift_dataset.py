@@ -16,6 +16,7 @@ from collections import defaultdict
 from torch.utils.data import Dataset
 
 from dataset.data_utils import *
+from utils.common import bin_data
 
 
 class RedshiftDataset(Dataset):
@@ -62,19 +63,19 @@ class RedshiftDataset(Dataset):
         self.data = defaultdict(lambda x: None)
 
         if self.load_data_from_cache and exists(self.meta_data_fname):
-            log.info("loading data from cache")
+            log.info(f"loading data from {self.meta_data_fname}")
             with open(self.meta_data_fname, "rb") as fp:
-                (self.num_crops, self.tracts, self.patches, self.fits_fnames) = pickle.load(fp)
+                (self.num_crops, self.specz_bin_counts, self.tracts, self.patches, self.fits_fnames) = pickle.load(fp)
         else:
             df = self.read_source_redshift()
-            num_crops = self.crop_patch(df)
+            num_crops, self.specz_bin_counts = self.crop_patch(df)
 
             # flatten list
             self.num_crops = reduce(lambda cur, acc: cur + acc, num_crops)
             self.fits_fnames = reduce(lambda cur, acc: cur + acc, self.fits_fnames)
 
             # save locally
-            meta = [self.num_crops, self.tracts, self.patches, self.fits_fnames]
+            meta = [self.num_crops, self.specz_bin_counts, self.tracts, self.patches, self.fits_fnames]
             with open(self.meta_data_fname, "wb") as fp:
                 pickle.dump(meta, fp)
 
@@ -114,6 +115,7 @@ class RedshiftDataset(Dataset):
             return {"crops": crops}
 
         specz = self.cur_specz[idx]
+
         specz_bin = torch.ByteTensor(
             specz // (self.specz_upper_lim / self.num_specz_bins)
         )
@@ -135,6 +137,9 @@ class RedshiftDataset(Dataset):
 
     def get_total_num_crops(self):
         return self.total_num_crops
+
+    def get_specz_bin_counts(self):
+        return self.specz_bin_counts
 
     #############
     # Setters
@@ -200,6 +205,7 @@ class RedshiftDataset(Dataset):
     def crop_patch(self, df):
         # crop patch at provided center and retrieve specz, save locally
         num_crops = []
+        specz_bin_counts = np.zeros(self.kwargs["num_specz_bins"])
         offset = self.kwargs["crop_sz"] // 2
 
         for i in range(len(self.tracts)):
@@ -219,9 +225,15 @@ class RedshiftDataset(Dataset):
                     cur_entries = cur_entries.loc[ df["specz_redshift_isnull"] == False ]
 
                     # get current spectroscopic redshifts
-                    if not exists(cur_specz_fname):
+                    if True: #not exists(cur_specz_fname):
                         specz = np.array(list(cur_entries["specz_redshift"])).astype(np.float32)
+                        log.info(f"Warning: use {self.specz_upper_lim} as specz upper bound.")
+                        specz[specz >= self.specz_upper_lim] = self.specz_upper_lim - 1e-6
                         np.save(cur_specz_fname, specz)
+
+                        # divide specz into bins
+                        counts = bin_data(specz, self.specz_upper_lim, self.num_specz_bins)
+                        specz_bin_counts += counts
 
                 if exists(cur_crops_fname) and exists(cur_patch_zscale_range_fname):
                     continue
@@ -263,4 +275,4 @@ class RedshiftDataset(Dataset):
 
             num_crops.append(cur_tract_num_crops)
 
-        return num_crops
+        return num_crops, specz_bin_counts

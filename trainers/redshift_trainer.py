@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore")
 from trainers import BaseTrainer
 from trainers.train_utils import *
 from dataset.samplers import PatchWiseSampler
-from utils.common import get_pretrained_model_fname
+from utils.common import get_pretrained_model_fname, bin_data
 
 
 class RedshiftTrainer(BaseTrainer):
@@ -83,6 +83,11 @@ class RedshiftTrainer(BaseTrainer):
             ).to(self.device)
 
         elif self.mode == "redshift_train":
+            counts = self.train_dataset.get_specz_bin_counts()
+            # print(np.sum(counts))
+            weight = torch.FloatTensor(1 / (counts + 1e-12))
+            print(counts, weight)
+            # self.redshift_loss = nn.CrossEntropyLoss(weight=weight).to(self.device)
             self.redshift_loss = nn.CrossEntropyLoss().to(self.device)
 
     def init_scheduler(self):
@@ -174,12 +179,14 @@ class RedshiftTrainer(BaseTrainer):
         self.optimizer.zero_grad()
         self._add_to_device(data, fields=["crops","specz_bin"])
 
-        logits = self.pipeline(data["crops"])
+        probs = self.pipeline(data["crops"])
         # print(logits.shape, data["specz_bin"])
-        loss = self.redshift_loss(logits, data["specz_bin"])
+        loss = self.redshift_loss(probs, data["specz_bin"])
         self.log_dict["total_loss"] += loss.item()
 
-        _, preds = logits.max(dim=-1)
+        mx, preds = probs.max(dim=-1)
+        print('************')
+        print(preds, data["specz_bin"][int(preds[0])])
         num_correct = preds.eq(data["specz_bin"]).sum()
         self.log_dict["num_correct"] += num_correct
 
@@ -232,6 +239,11 @@ class RedshiftTrainer(BaseTrainer):
         speczs = np.array(speczs)
         delzs, madstd, eta = cal_metrics(
             photozs, speczs, self.kwargs["catastrophic_outlier_thresh"])
+
+        if mode == "valid":
+            fname = join(self.log_dir, f"{self.epoch}-{self.iteration}.png")
+        else: fname = join(self.log_dir, f"valid.png")
+        plot_redshift(speczs, photozs, fname)
 
         if mode == "valid":
             if avg_acc > self.best_valid_acc:

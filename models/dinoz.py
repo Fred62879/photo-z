@@ -23,11 +23,11 @@ class DINOz(nn.Module):
         )
 
         # load pretrained model (backbone only)
-        if self.kwargs["trainer_mode"] == "redshift_train":
-            state = torch.load(fname)["model_state_dict"]
+        # if self.kwargs["trainer_mode"] == "redshift_train":
+            # state = torch.load(fname)["model_state_dict"]
             # for n,p in vit.named_parameters(): print(n)
             # for n in state.keys(): print(n)
-            load_model_prefixed_state(state, vit, "student.backbone.")
+            # load_model_prefixed_state(state, vit, "student.backbone.")
             # for p in vit.parameters():
             #    p.requires_grad = False
 
@@ -57,5 +57,6 @@ class DINOz(nn.Module):
     def forward(self, images):
         # images BCHW
         logits = self.model(images)
-        probs = self.softmax(logits)
-        return probs
+        return logits
+        #probs = self.softmax(logits)
+        #return probs
